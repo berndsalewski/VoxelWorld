@@ -25,10 +25,10 @@ public class Chunk : MonoBehaviour
     public Block[,,] blocks;
 
     [HideInInspector]
-    public MeshUtils.BlockType[] chunkData;
+    public BlockType[] chunkData;
     // the current health (visual) of the block at the index
     [HideInInspector]
-    public MeshUtils.BlockType[] healthData;
+    public BlockType[] healthData;
     [HideInInspector]
     public MeshRenderer meshRendererSolid;
     [HideInInspector]
@@ -45,10 +45,10 @@ public class Chunk : MonoBehaviour
     private void GenerateChunkData()
     {
         int blockCount = width * height * depth;
-        chunkData = new MeshUtils.BlockType[blockCount];
-        healthData = new MeshUtils.BlockType[blockCount];
-        NativeArray<MeshUtils.BlockType> blockTypes = new NativeArray<MeshUtils.BlockType>(chunkData, Allocator.Persistent);
-        NativeArray<MeshUtils.BlockType> healthTypes = new NativeArray<MeshUtils.BlockType>(healthData, Allocator.Persistent);
+        chunkData = new BlockType[blockCount];
+        healthData = new BlockType[blockCount];
+        NativeArray<BlockType> blockTypes = new NativeArray<BlockType>(chunkData, Allocator.Persistent);
+        NativeArray<BlockType> healthTypes = new NativeArray<BlockType>(healthData, Allocator.Persistent);
 
         var randomArray = new Unity.Mathematics.Random[blockCount];
         var seed = new System.Random();
@@ -83,36 +83,36 @@ public class Chunk : MonoBehaviour
     }
 
 
-    (Vector3Int, MeshUtils.BlockType)[] treeDesign = new (Vector3Int, MeshUtils.BlockType)[]{
-        (new Vector3Int(0,3,-1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(-1,4,-1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,4,-1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(1,4,-1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,5,-1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,0,0), MeshUtils.BlockType.Wood),
-        (new Vector3Int(0,1,0), MeshUtils.BlockType.Wood),
-        (new Vector3Int(0,2,0), MeshUtils.BlockType.Wood),
-        (new Vector3Int(-1,3,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,3,0), MeshUtils.BlockType.Wood),
-        (new Vector3Int(1,3,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(-1,4,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,4,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(1,4,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(-1,5,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,5,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(1,5,0), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,3,1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(-1,4,1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,4,1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(1,4,1), MeshUtils.BlockType.Leaves),
-        (new Vector3Int(0,5,1), MeshUtils.BlockType.Leaves)
+    (Vector3Int, BlockType)[] treeDesign = new (Vector3Int, BlockType)[]{
+        (new Vector3Int(0,3,-1), BlockType.Leaves),
+        (new Vector3Int(-1,4,-1), BlockType.Leaves),
+        (new Vector3Int(0,4,-1), BlockType.Leaves),
+        (new Vector3Int(1,4,-1), BlockType.Leaves),
+        (new Vector3Int(0,5,-1), BlockType.Leaves),
+        (new Vector3Int(0,0,0), BlockType.Wood),
+        (new Vector3Int(0,1,0), BlockType.Wood),
+        (new Vector3Int(0,2,0), BlockType.Wood),
+        (new Vector3Int(-1,3,0), BlockType.Leaves),
+        (new Vector3Int(0,3,0), BlockType.Wood),
+        (new Vector3Int(1,3,0), BlockType.Leaves),
+        (new Vector3Int(-1,4,0), BlockType.Leaves),
+        (new Vector3Int(0,4,0), BlockType.Leaves),
+        (new Vector3Int(1,4,0), BlockType.Leaves),
+        (new Vector3Int(-1,5,0), BlockType.Leaves),
+        (new Vector3Int(0,5,0), BlockType.Leaves),
+        (new Vector3Int(1,5,0), BlockType.Leaves),
+        (new Vector3Int(0,3,1), BlockType.Leaves),
+        (new Vector3Int(-1,4,1), BlockType.Leaves),
+        (new Vector3Int(0,4,1), BlockType.Leaves),
+        (new Vector3Int(1,4,1), BlockType.Leaves),
+        (new Vector3Int(0,5,1), BlockType.Leaves)
     };
 
     private void BuildTrees()
     {
         for (int i = 0; i < chunkData.Length; i++)
         {
-            if (chunkData[i] == MeshUtils.BlockType.Woodbase)
+            if (chunkData[i] == BlockType.Woodbase)
             {
                 Vector3Int treeBasePos = World.FromFlat(i);
                 foreach (var item in treeDesign)
@@ -122,7 +122,7 @@ public class Chunk : MonoBehaviour
                     if (blockIndex >= 0 && blockIndex < chunkData.Length)
                     {
                         chunkData[blockIndex] = item.Item2;
-                        healthData[blockIndex] = MeshUtils.BlockType.Nocrack;
+                        healthData[blockIndex] = BlockType.Nocrack;
                     }
                 }
             }
@@ -364,8 +364,8 @@ public class Chunk : MonoBehaviour
 
     struct CalculateBlockTypes : IJobParallelFor
     {
-        public NativeArray<MeshUtils.BlockType> cData;
-        public NativeArray<MeshUtils.BlockType> hData;
+        public NativeArray<BlockType> cData;
+        public NativeArray<BlockType> hData;
         public int width;
         public int height;
         public Vector3 location;
@@ -411,7 +411,7 @@ public class Chunk : MonoBehaviour
                 World.diamondBottomSettings.heightScale,
                 World.diamondBottomSettings.heightOffset));
 
-            hData[i] = MeshUtils.BlockType.Nocrack;
+            hData[i] = BlockType.Nocrack;
 
             float digCave = MeshUtils.fBM3D(xPos, yPos, zPos, World.caveSettings.octaves, World.caveSettings.scale, World.caveSettings.heightScale, World.caveSettings.heightOffset);
 
@@ -422,43 +422,43 @@ public class Chunk : MonoBehaviour
                 int waterLevel = 20;
                 if (yPos < waterLevel)
                 {
-                    cData[i] = MeshUtils.BlockType.Water;
+                    cData[i] = BlockType.Water;
                 }
                 else
                 {
-                    cData[i] = MeshUtils.BlockType.Air;
+                    cData[i] = BlockType.Air;
                 }
             }
             else if (yPos == 0)
             {
-                cData[i] = MeshUtils.BlockType.Bedrock;
+                cData[i] = BlockType.Bedrock;
             }
             else if (yPos == surfaceHeight)
             {
                 if (plantTree < World.treeSettings.drawCutOff && random.NextFloat() <= 0.2f)
                 {
-                    cData[i] = MeshUtils.BlockType.Woodbase;
+                    cData[i] = BlockType.Woodbase;
                 }
                 else
                 {
-                    cData[i] = MeshUtils.BlockType.GrassTop;
+                    cData[i] = BlockType.GrassTop;
                 }
             }
             else if (digCave < World.caveSettings.drawCutOff)
             {
-                cData[i] = MeshUtils.BlockType.Air;
+                cData[i] = BlockType.Air;
             }
             else if (yPos < stoneHeight && random.NextFloat() < World.stoneSettings.probability)
             {
-                cData[i] = MeshUtils.BlockType.Stone;
+                cData[i] = BlockType.Stone;
             }
             else if (yPos > diamondBottomHeight && yPos < diamondTopHeight && random.NextFloat() < World.diamondTopSettings.probability)
             {
-                cData[i] = MeshUtils.BlockType.Diamond;
+                cData[i] = BlockType.Diamond;
             }
             else
             {
-                cData[i] = MeshUtils.BlockType.Dirt;
+                cData[i] = BlockType.Dirt;
             }
         }
     }

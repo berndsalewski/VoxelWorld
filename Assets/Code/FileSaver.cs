@@ -51,7 +51,7 @@ public class WorldData
         i = 0;
         foreach (KeyValuePair<Vector3Int, Chunk> item in chunks)
         {
-            foreach (MeshUtils.BlockType blockType in item.Value.chunkData)
+            foreach (BlockType blockType in item.Value.chunkData)
             {
 
                 allChunkData[i] = (int)blockType;

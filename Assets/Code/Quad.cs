@@ -45,20 +45,20 @@ public class Quad
     static Vector3 p6 = new Vector3(-0.5f, 0.5f, 0.5f);
     static Vector3 p7 = new Vector3(0.5f, 0.5f, 0.5f);
 
-    public Quad(MeshUtils.BlockSide side, Vector3 offset, MeshUtils.BlockType blockType, MeshUtils.BlockType healthType)
+    public Quad(MeshUtils.BlockSide side, Vector3 offset, BlockType blockType, BlockType healthType)
     {
         Vector3[] vertices;
         Vector3[] normals;
 
-        if(blockType == MeshUtils.BlockType.GrassTop && side != MeshUtils.BlockSide.Top)
+        if(blockType == BlockType.GrassTop && side != MeshUtils.BlockSide.Top)
         {
             if (side == MeshUtils.BlockSide.Bottom)
             {
-                blockType = MeshUtils.BlockType.Dirt;
+                blockType = BlockType.Dirt;
             }
             else
             {
-                blockType = MeshUtils.BlockType.GrassSide;
+                blockType = BlockType.GrassSide;
             }
         }
 

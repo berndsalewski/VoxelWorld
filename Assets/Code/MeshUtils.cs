@@ -5,10 +5,6 @@ using VertexData = System.Tuple<UnityEngine.Vector3, UnityEngine.Vector3, UnityE
 
 public static class MeshUtils
 {
-    public enum BlockType
-    {
-        GrassTop, GrassSide, Dirt, Water, Stone,Leaves, Wood, Woodbase, Sand, Gold, Bedrock, Redstone, Diamond, Nocrack, Crack1, Crack2, Crack3, Crack4, Air
-    }
 
     public static int[] blockTypeHealth = { 2, 2, 1, 1, 4, 2, 4, 4, 3, 4, -1, 3, 4, -1, -1, -1, -1, -1, -1 };
 

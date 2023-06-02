@@ -41,13 +41,13 @@ public class TreeCreator : MonoBehaviour
             {
                 for (int x = 0; x < dimensions.x; x++)
                 {
-                    //(new Vector3Int(0, 1, 0), MeshUtils.BlockType.WOOD)
+                    //(new Vector3Int(0, 1, 0), BlockType.Wood)
                     if (allCubes[x, y, z] == null) continue;
                     Debug.Log(allCubes[x, y, z].GetComponent<Renderer>().sharedMaterial);
                     if (allCubes[x,y,z].GetComponent<Renderer>().sharedMaterial.ToString().Contains("trunk"))
-                        blockDetails += "(new Vector3Int(" + (x - halfX) + "," + y + "," + (z - halfZ) + "), MeshUtils.BlockType.WOOD),\n";
+                        blockDetails += "(new Vector3Int(" + (x - halfX) + "," + y + "," + (z - halfZ) + "), BlockType.Wood),\n";
                     else
-                        blockDetails += "(new Vector3Int(" + (x - halfX) + "," + y + "," + (z - halfZ) + "), MeshUtils.BlockType.LEAVES),\n";
+                        blockDetails += "(new Vector3Int(" + (x - halfX) + "," + y + "," + (z - halfZ) + "), BlockType.Leaves),\n";
 
                 }
             }

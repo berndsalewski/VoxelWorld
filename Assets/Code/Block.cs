@@ -11,10 +11,10 @@ public class Block
     Chunk parentChunk;
 
     // Use this for initialization
-    public Block(Vector3Int offset, MeshUtils.BlockType blockType, Chunk chunk, MeshUtils.BlockType healthType)
+    public Block(Vector3Int offset, BlockType blockType, Chunk chunk, BlockType healthType)
     {
 
-        if(blockType == MeshUtils.BlockType.Air)
+        if(blockType == BlockType.Air)
         {
             return;
         }
@@ -71,7 +71,7 @@ public class Block
 
 
 
-    private bool CanDrawQuad(Vector3Int pos, MeshUtils.BlockType blockType)
+    private bool CanDrawQuad(Vector3Int pos, BlockType blockType)
     {
         if (isNextChunkBlock(pos))
         {
@@ -83,7 +83,7 @@ public class Block
             return true;
         }
 
-        if (IsWaterBlock(pos) && blockType != MeshUtils.BlockType.Water)
+        if (IsWaterBlock(pos) && blockType != BlockType.Water)
         {
             return true;
         }
@@ -93,12 +93,12 @@ public class Block
 
     private bool IsAirBlock(Vector3Int pos)
     {
-        return parentChunk.chunkData[World.ToFlat(pos)] == MeshUtils.BlockType.Air;
+        return parentChunk.chunkData[World.ToFlat(pos)] == BlockType.Air;
     }
 
     private bool IsWaterBlock(Vector3Int pos)
     {
-        return parentChunk.chunkData[World.ToFlat(pos)] == MeshUtils.BlockType.Water;
+        return parentChunk.chunkData[World.ToFlat(pos)] == BlockType.Water;
     }
 
     private bool isNextChunkBlock(Vector3Int pos)

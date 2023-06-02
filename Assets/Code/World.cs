@@ -81,14 +81,14 @@ public class World : MonoBehaviour
         }
     }
 
-    private MeshUtils.BlockType buildBlockType = MeshUtils.BlockType.Dirt;
+    private BlockType buildBlockType = BlockType.Dirt;
     /// <summary>
     /// used by Buttons in Scene
     /// </summary>
     /// <param name="type"></param>
     public void SetBuildType(int type)
     {
-        buildBlockType = (MeshUtils.BlockType)type;
+        buildBlockType = (BlockType)type;
         Debug.Log($"Build Type: {buildBlockType}");
     }
 
@@ -214,10 +214,10 @@ public class World : MonoBehaviour
                     if (MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]] > -1)
                     {
                         thisChunk.healthData[currentBlockIndex]++;
-                        if (thisChunk.healthData[currentBlockIndex] == MeshUtils.BlockType.Nocrack + MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
+                        if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack + MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
                         {
                             Debug.Log($"Delete at chunk:{thisChunk.location} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
-                            thisChunk.chunkData[currentBlockIndex] = MeshUtils.BlockType.Air;
+                            thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
 
                             //TODO
                             Vector3Int aboveBlock = blockPosition + Vector3Int.up;
@@ -234,7 +234,7 @@ public class World : MonoBehaviour
                 {
                     Debug.Log($"Build in chunk:{thisChunk.location} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
                     thisChunk.chunkData[currentBlockIndex] = buildBlockType;
-                    thisChunk.healthData[currentBlockIndex] = MeshUtils.BlockType.Nocrack;
+                    thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
                     StartCoroutine(Drop(thisChunk, currentBlockIndex));
                 }
 
@@ -324,9 +324,9 @@ public class World : MonoBehaviour
     private IEnumerator HealBlock(Chunk c, int blockIndex)
     {
         yield return waitFor3Seconds;
-        if (c.chunkData[blockIndex] != MeshUtils.BlockType.Air)
+        if (c.chunkData[blockIndex] != BlockType.Air)
         {
-            c.healthData[blockIndex] = MeshUtils.BlockType.Nocrack;
+            c.healthData[blockIndex] = BlockType.Nocrack;
             RedrawChunk(c);
             
         }
@@ -346,14 +346,14 @@ public class World : MonoBehaviour
             (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = AdjustGridPosition(chunk.location, thisBlockPos + Vector3Int.down);
             int belowBlockIndex = ToFlat(adjustedBelowBlockPos);
             Chunk chunkOfBelowBlock = chunks[chunkPosOfBelowBlock];
-            if (chunkOfBelowBlock != null && chunkOfBelowBlock.chunkData[belowBlockIndex] == MeshUtils.BlockType.Air)
+            if (chunkOfBelowBlock != null && chunkOfBelowBlock.chunkData[belowBlockIndex] == BlockType.Air)
             {
                 //fall -> move block 1 down -> switch chunkData
                 chunkOfBelowBlock.chunkData[belowBlockIndex] = chunk.chunkData[blockIndex];
-                chunkOfBelowBlock.healthData[belowBlockIndex] = MeshUtils.BlockType.Nocrack;
+                chunkOfBelowBlock.healthData[belowBlockIndex] = BlockType.Nocrack;
 
-                chunk.chunkData[blockIndex] = MeshUtils.BlockType.Air;
-                chunk.healthData[blockIndex] = MeshUtils.BlockType.Nocrack;
+                chunk.chunkData[blockIndex] = BlockType.Air;
+                chunk.healthData[blockIndex] = BlockType.Nocrack;
 
                 // test if there is a fallable block above the new air block
                 Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
@@ -401,12 +401,12 @@ public class World : MonoBehaviour
         int neighbourBlockIndex = ToFlat(neighbourBlockPos);
         Chunk neighbourChunk = chunks[neighbourChunkPos];
 
-        if (neighbourChunk != null && neighbourChunk.chunkData[neighbourBlockIndex] == MeshUtils.BlockType.Air)
+        if (neighbourChunk != null && neighbourChunk.chunkData[neighbourBlockIndex] == BlockType.Air)
         {
             // flow
             Debug.Log($"Flow");
             neighbourChunk.chunkData[neighbourBlockIndex] = chunks[chunkPosition].chunkData[ToFlat(blockPosition)];
-            neighbourChunk.healthData[neighbourBlockIndex] = MeshUtils.BlockType.Nocrack;
+            neighbourChunk.healthData[neighbourBlockIndex] = BlockType.Nocrack;
             RedrawChunk(neighbourChunk);
             StartCoroutine(Drop(neighbourChunk, neighbourBlockIndex, strength--));
         }
@@ -466,13 +466,13 @@ public class World : MonoBehaviour
             chunk.name = $"Chunk_{chunkPos.x}_{chunkPos.y}_{chunkPos.z}";
             Chunk c = chunk.GetComponent<Chunk>();
             
-            c.chunkData = new MeshUtils.BlockType[blockCount];
-            c.healthData = new MeshUtils.BlockType[blockCount];
+            c.chunkData = new BlockType[blockCount];
+            c.healthData = new BlockType[blockCount];
 
             for (int i = 0; i < blockCount; i++)
             {
-                c.chunkData[i] = (MeshUtils.BlockType)worldData.allChunkData[index];
-                c.healthData[i] = MeshUtils.BlockType.Nocrack;
+                c.chunkData[i] = (BlockType)worldData.allChunkData[index];
+                c.healthData[i] = BlockType.Nocrack;
                 index++;
             }
 
