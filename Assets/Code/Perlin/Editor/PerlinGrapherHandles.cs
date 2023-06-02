@@ -1,21 +1,24 @@
-using UnityEngine;
-using System.Collections;
-using UnityEditor;
-
-[CustomEditor(typeof(PerlinGrapher))]
-public class PerlinGrapherHandles : Editor
+namespace VoxelWorld.Editor
 {
-    void OnSceneGUI()
-    {
-        PerlinGrapher handle = (PerlinGrapher)target;
-        if (handle == null)
-        {
-            return;
-        }
+    using UnityEngine;
+    using System.Collections;
+    using UnityEditor;
 
-        Handles.color = Color.white;
-        Handles.Label(handle.lineRenderer.GetPosition(0) + Vector3.up * 2,
-            "Layer: " +
-            handle.gameObject.name);
+    [CustomEditor(typeof(PerlinGrapher))]
+    public class PerlinGrapherHandles : Editor
+    {
+        void OnSceneGUI()
+        {
+            PerlinGrapher handle = (PerlinGrapher)target;
+            if (handle == null)
+            {
+                return;
+            }
+
+            Handles.color = Color.white;
+            Handles.Label(handle.lineRenderer.GetPosition(0) + Vector3.up * 2,
+                "Layer: " +
+                handle.gameObject.name);
+        }
     }
 }

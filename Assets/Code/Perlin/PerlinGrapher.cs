@@ -1,50 +1,53 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-[ExecuteInEditMode]
-public class PerlinGrapher : MonoBehaviour
+namespace VoxelWorld
 {
-    public LineRenderer lineRenderer;
-    [Range(1,10)]
-    public float heightScale = 1;
-    [Range(0.01f, 1)]
-    public float scale = 1f;
-    [Range(1,10)]
-    public int octaves = 1;
-    [Range(-20,20)]
-    public float heightOffset = 0;
-    [Range(0,1)]
-    public float probability = 1;
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
 
-    // Start is called before the first frame update
-    void Start()
+    [ExecuteInEditMode]
+    public class PerlinGrapher : MonoBehaviour
     {
-        lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 100;
-        Graph();
-    }
+        public LineRenderer lineRenderer;
+        [Range(1, 10)]
+        public float heightScale = 1;
+        [Range(0.01f, 1)]
+        public float scale = 1f;
+        [Range(1, 10)]
+        public int octaves = 1;
+        [Range(-20, 20)]
+        public float heightOffset = 0;
+        [Range(0, 1)]
+        public float probability = 1;
 
-    void Graph()
-    {
-        int z = 0;
-        Vector3[] positions = new Vector3[lineRenderer.positionCount];
-        for (int x = 0; x < lineRenderer.positionCount; x++)
+        // Start is called before the first frame update
+        void Start()
         {
-            float y = MeshUtils.fBM(x,z, octaves, scale, heightScale, heightOffset);
-            positions[x] = new Vector3(x, y, z);
+            lineRenderer = GetComponent<LineRenderer>();
+            lineRenderer.positionCount = 100;
+            Graph();
         }
-        lineRenderer.SetPositions(positions);
-    }
 
-    private void OnValidate()
-    {
-        Graph();
-    }
+        void Graph()
+        {
+            int z = 0;
+            Vector3[] positions = new Vector3[lineRenderer.positionCount];
+            for (int x = 0; x < lineRenderer.positionCount; x++)
+            {
+                float y = MeshUtils.fBM(x, z, octaves, scale, heightScale, heightOffset);
+                positions[x] = new Vector3(x, y, z);
+            }
+            lineRenderer.SetPositions(positions);
+        }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        private void OnValidate()
+        {
+            Graph();
+        }
+
+        // Update is called once per frame
+        void Update()
+        {
+
+        }
     }
 }

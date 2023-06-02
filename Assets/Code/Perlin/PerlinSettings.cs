@@ -1,19 +1,22 @@
-﻿using System;
-
-public struct PerlinSettings
+﻿namespace VoxelWorld
 {
-    public float heightScale;
-    public float scale;
-    public int octaves;
-    public float heightOffset;
-    public float probability;
+    using System;
 
-    public PerlinSettings(float heightScale, float scale, int octaves, float heightOffset, float probability)
+    public struct PerlinSettings
     {
-        this.heightScale = heightScale;
-        this.scale = scale;
-        this.octaves = octaves;
-        this.heightOffset = heightOffset;
-        this.probability = probability;
+        public float heightScale;
+        public float scale;
+        public int octaves;
+        public float heightOffset;
+        public float probability;
+
+        public PerlinSettings(float heightScale, float scale, int octaves, float heightOffset, float probability)
+        {
+            this.heightScale = heightScale;
+            this.scale = scale;
+            this.octaves = octaves;
+            this.heightOffset = heightOffset;
+            this.probability = probability;
+        }
     }
 }

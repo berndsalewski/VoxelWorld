@@ -1,32 +1,34 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class UVScroller : MonoBehaviour
+namespace VoxelWorld
 {
-    Vector2 uvSpeed = new Vector2(0,0.01f);
-    Vector2 uvOffset = Vector2.zero;
-    MeshRenderer rend;
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
 
-    private void Start()
+    public class UVScroller : MonoBehaviour
     {
-        rend = this.GetComponent<MeshRenderer>();
-    }
+        Vector2 uvSpeed = new Vector2(0, 0.01f);
+        Vector2 uvOffset = Vector2.zero;
+        MeshRenderer rend;
 
-
-    private void LateUpdate()
-    {
-        uvOffset += uvSpeed * Time.deltaTime;
-        if (uvOffset.x > 0.0625f)
+        private void Start()
         {
-            uvOffset = new Vector2(0, uvOffset.y);
+            rend = this.GetComponent<MeshRenderer>();
         }
 
-        if (uvOffset.y > 0.0625f)
+        private void LateUpdate()
         {
-            uvOffset = new Vector2(uvOffset.x, 0);
-        }
+            uvOffset += uvSpeed * Time.deltaTime;
+            if (uvOffset.x > 0.0625f)
+            {
+                uvOffset = new Vector2(0, uvOffset.y);
+            }
 
-        rend.materials[0].SetTextureOffset("_MainTex", uvOffset);
+            if (uvOffset.y > 0.0625f)
+            {
+                uvOffset = new Vector2(uvOffset.x, 0);
+            }
+
+            rend.materials[0].SetTextureOffset("_MainTex", uvOffset);
+        }
     }
 }

@@ -1,14 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
-public class WaterManager : MonoBehaviour
+namespace VoxelWorld
 {
-    public GameObject player;
+    using System.Collections;
+    using System.Collections.Generic;
+    using UnityEngine;
 
-    // Update is called once per frame
-    void Update()
+    public class WaterManager : MonoBehaviour
     {
-        this.gameObject.transform.position = new Vector3(player.transform.position.x, 0, player.transform.position.z);
+        public GameObject player;
+
+        // Update is called once per frame
+        void Update()
+        {
+            this.gameObject.transform.position = new Vector3(player.transform.position.x, 0, player.transform.position.z);
+        }
     }
 }
