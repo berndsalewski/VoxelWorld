@@ -12,8 +12,6 @@
         public static HashSet<BlockType> canDrop = new HashSet<BlockType> { BlockType.Sand, BlockType.Water };
         public static HashSet<BlockType> canFlow = new HashSet<BlockType> { BlockType.Water };
 
-        public enum BlockSide { Left, Right, Top, Bottom, Front, Back }
-
         // order: left-bottom, left-top, right-top, right-bottom
         public static Vector2[,] BlockUVs =
         {

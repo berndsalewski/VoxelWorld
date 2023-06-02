@@ -28,14 +28,14 @@ namespace VoxelWorld
         static Vector3 p6 = new Vector3(-0.5f, 0.5f, 0.5f);
         static Vector3 p7 = new Vector3(0.5f, 0.5f, 0.5f);
 
-        public Quad(MeshUtils.BlockSide side, Vector3 offset, BlockType blockType, BlockType healthType)
+        public Quad(BlockSide side, Vector3 offset, BlockType blockType, BlockType healthType)
         {
             Vector3[] vertices;
             Vector3[] normals;
 
-            if (blockType == BlockType.GrassTop && side != MeshUtils.BlockSide.Top)
+            if (blockType == BlockType.GrassTop && side != BlockSide.Top)
             {
-                if (side == MeshUtils.BlockSide.Bottom)
+                if (side == BlockSide.Bottom)
                 {
                     blockType = BlockType.Dirt;
                 }
@@ -48,27 +48,27 @@ namespace VoxelWorld
             switch (side)
             {
                 // points order: bottomLeft, topLeft, topRight, bottomRight
-                case MeshUtils.BlockSide.Front:
+                case BlockSide.Front:
                     vertices = new Vector3[] { p0, p1, p2, p3 };
                     normals = new Vector3[] { Vector3.back, Vector3.back, Vector3.back, Vector3.back };
                     break;
-                case MeshUtils.BlockSide.Back:
+                case BlockSide.Back:
                     vertices = new Vector3[] { p4, p7, p6, p5 };
                     normals = new Vector3[] { Vector3.forward, Vector3.forward, Vector3.forward, Vector3.forward };
                     break;
-                case MeshUtils.BlockSide.Left:
+                case BlockSide.Left:
                     vertices = new Vector3[] { p5, p6, p1, p0 };
                     normals = new Vector3[] { Vector3.left, Vector3.left, Vector3.left, Vector3.left };
                     break;
-                case MeshUtils.BlockSide.Right:
+                case BlockSide.Right:
                     vertices = new Vector3[] { p3, p2, p7, p4 };
                     normals = new Vector3[] { Vector3.right, Vector3.right, Vector3.right, Vector3.right };
                     break;
-                case MeshUtils.BlockSide.Top:
+                case BlockSide.Top:
                     vertices = new Vector3[] { p1, p6, p7, p2 };
                     normals = new Vector3[] { Vector3.up, Vector3.up, Vector3.up, Vector3.up };
                     break;
-                case MeshUtils.BlockSide.Bottom:
+                case BlockSide.Bottom:
                     vertices = new Vector3[] { p3, p4, p5, p0 };
                     normals = new Vector3[] { Vector3.down, Vector3.down, Vector3.down, Vector3.down };
                     break;

@@ -5,7 +5,7 @@
     using System.Collections.Generic;
 
     /// <summary>
-    /// creates a mesh for a block
+    /// creates a mesh for a block, built out of Quads
     /// </summary>
     public class Block
     {
@@ -27,32 +27,32 @@
             List<Quad> quads = new List<Quad>();
             if (CanDrawQuad(localBlockPos + Vector3Int.up, blockType))
             {
-                quads.Add(new Quad(MeshUtils.BlockSide.Top, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Top, offset, blockType, healthType));
             }
 
             if (CanDrawQuad(localBlockPos + Vector3Int.down, blockType))
             {
-                quads.Add(new Quad(MeshUtils.BlockSide.Bottom, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Bottom, offset, blockType, healthType));
             }
 
             if (CanDrawQuad(localBlockPos + Vector3Int.back, blockType))
             {
-                quads.Add(new Quad(MeshUtils.BlockSide.Front, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Front, offset, blockType, healthType));
             }
 
             if (CanDrawQuad(localBlockPos + Vector3Int.forward, blockType))
             {
-                quads.Add(new Quad(MeshUtils.BlockSide.Back, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Back, offset, blockType, healthType));
             }
 
             if (CanDrawQuad(localBlockPos + Vector3Int.left, blockType))
             {
-                quads.Add(new Quad(MeshUtils.BlockSide.Left, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Left, offset, blockType, healthType));
             }
 
             if (CanDrawQuad(localBlockPos + Vector3Int.right, blockType))
             {
-                quads.Add(new Quad(MeshUtils.BlockSide.Right, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Right, offset, blockType, healthType));
             }
 
             if (quads.Count == 0)
