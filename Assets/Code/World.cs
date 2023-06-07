@@ -1,10 +1,11 @@
-﻿namespace VoxelWorld
+﻿using UnityEngine;
+using UnityEngine.UI;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace VoxelWorld
 {
-    using UnityEngine;
-    using UnityEngine.UI;
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
 
     /// <summary>
     /// hold the data structures for the world and provides access to world data
@@ -97,30 +98,6 @@
             Debug.Log($"Build Type: {buildBlockType}");
         }
 
-        /// <summary>
-        /// calculates relative chunk position from the index of a block
-        /// </summary>
-        /// <param name="i">block index</param>
-        /// <returns></returns>
-        public static Vector3Int FromFlat(int i)
-        {
-            // x = i % width
-            // y = (i / width) % height
-            // z = i / (width * height)
-
-            return new Vector3Int(
-                i % chunkDimensions.x,
-                (i / chunkDimensions.x) % chunkDimensions.y,
-                i / (chunkDimensions.x * chunkDimensions.y));
-        }
-
-        // flat array [x + WIDTH * (y + DEPTH * z)] = Original[x,y,z]
-        // calculates index of a block from vector position
-        public static int ToFlat(Vector3Int pos)
-        {
-            return pos.x + chunkDimensions.x * (pos.y + chunkDimensions.z * pos.z);
-        }
-
         // System.Tuple<Vector3Int, Vector3Int> can be written as (Vector3Int, Vector3Int) since C#7
         // supposed to wrap indices when we cross from one chunk to another one.poor naming of method
         // formerly: GetWorldNeighbour, better name would probably FromWorldPosToLocal or similar
@@ -211,7 +188,7 @@
 
                     (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToLocal(hitBlock);
                     Chunk thisChunk = chunks[chunkPosition];
-                    int currentBlockIndex = ToFlat(blockPosition);
+                    int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
 
                     // delete blocks with left mousebutton
                     if (Input.GetMouseButton(0))
@@ -221,13 +198,13 @@
                             thisChunk.healthData[currentBlockIndex]++;
                             if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack + MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
                             {
-                                Debug.Log($"Delete at chunk:{thisChunk.location} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                                Debug.Log($"Delete at chunk:{thisChunk.worldPosition} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
                                 thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
 
                                 //TODO
                                 Vector3Int aboveBlock = blockPosition + Vector3Int.up;
                                 (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustGridPosition(chunkPosition, aboveBlock);
-                                int aboveBlockIndex = ToFlat(adjustedBlockPosition);
+                                int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                                 StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
                             }
 
@@ -237,7 +214,7 @@
                     // build block
                     else
                     {
-                        Debug.Log($"Build in chunk:{thisChunk.location} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                        Debug.Log($"Build in chunk:{thisChunk.worldPosition} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
                         thisChunk.chunkData[currentBlockIndex] = buildBlockType;
                         thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
                         StartCoroutine(Drop(thisChunk, currentBlockIndex));
@@ -271,8 +248,8 @@
                     Debug.Log($"Chunk created at {position}");
                 }
 
-                chunks[position].meshRendererSolid.enabled = meshEnabled;
-                chunks[position].meshRendererFluid.enabled = meshEnabled;
+                chunks[position].meshRendererSolidBlocks.enabled = meshEnabled;
+                chunks[position].meshRendererFluidBlocks.enabled = meshEnabled;
 
             }
 
@@ -319,8 +296,8 @@
                 Vector3Int pos = new Vector3Int(worldX, y * chunkDimensions.y, worldZ);
                 if (createdChunks.Contains(pos))
                 {
-                    chunks[pos].meshRendererSolid.enabled = false;
-                    chunks[pos].meshRendererFluid.enabled = false;
+                    chunks[pos].meshRendererSolidBlocks.enabled = false;
+                    chunks[pos].meshRendererFluidBlocks.enabled = false;
                 }
             }
         }
@@ -347,9 +324,9 @@
             yield return dropDelay;
             while (true)
             {
-                Vector3Int thisBlockPos = FromFlat(blockIndex);
-                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = AdjustGridPosition(chunk.location, thisBlockPos + Vector3Int.down);
-                int belowBlockIndex = ToFlat(adjustedBelowBlockPos);
+                Vector3Int thisBlockPos = Chunk.ToBlockPosition(blockIndex);
+                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = AdjustGridPosition(chunk.worldPosition, thisBlockPos + Vector3Int.down);
+                int belowBlockIndex = Chunk.ToBlockIndex(adjustedBelowBlockPos);
                 Chunk chunkOfBelowBlock = chunks[chunkPosOfBelowBlock];
                 if (chunkOfBelowBlock != null && chunkOfBelowBlock.chunkData[belowBlockIndex] == BlockType.Air)
                 {
@@ -362,8 +339,8 @@
 
                     // test if there is a fallable block above the new air block
                     Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
-                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustGridPosition(chunk.location, aboveBlock);
-                    int aboveBlockIndex = ToFlat(adjustedBlockPosition);
+                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustGridPosition(chunk.worldPosition, aboveBlock);
+                    int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                     StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
 
                     yield return dropDelay;
@@ -379,10 +356,10 @@
                 }
                 else if (MeshUtils.canFlow.Contains(chunk.chunkData[blockIndex]))
                 {
-                    FlowIntoNeighbours(thisBlockPos, chunk.location, Vector3Int.left, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.location, Vector3Int.right, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.location, Vector3Int.forward, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.location, Vector3Int.back, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.left, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.right, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.forward, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.back, strength);
                     yield break;
                 }
                 else
@@ -403,14 +380,14 @@
             Vector3Int neighbourPosition = blockPosition + neighbourDirection;
             (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = AdjustGridPosition(chunkPosition, neighbourPosition);
 
-            int neighbourBlockIndex = ToFlat(neighbourBlockPos);
+            int neighbourBlockIndex = Chunk.ToBlockIndex(neighbourBlockPos);
             Chunk neighbourChunk = chunks[neighbourChunkPos];
 
             if (neighbourChunk != null && neighbourChunk.chunkData[neighbourBlockIndex] == BlockType.Air)
             {
                 // flow
                 Debug.Log($"Flow");
-                neighbourChunk.chunkData[neighbourBlockIndex] = chunks[chunkPosition].chunkData[ToFlat(blockPosition)];
+                neighbourChunk.chunkData[neighbourBlockIndex] = chunks[chunkPosition].chunkData[Chunk.ToBlockIndex(blockPosition)];
                 neighbourChunk.healthData[neighbourBlockIndex] = BlockType.Nocrack;
                 RedrawChunk(neighbourChunk);
                 StartCoroutine(Drop(neighbourChunk, neighbourBlockIndex, strength--));
@@ -426,7 +403,7 @@
             DestroyImmediate(c.GetComponent<MeshFilter>());
             DestroyImmediate(c.GetComponent<MeshRenderer>());
             DestroyImmediate(c.GetComponent<Collider>());
-            c.CreateChunk(chunkDimensions, c.location, false);
+            c.CreateChunk(chunkDimensions, c.worldPosition, false);
         }
 
         public void SaveWorld()
@@ -484,8 +461,8 @@
                 c.CreateChunk(chunkDimensions, chunkPos, false);
                 chunks.Add(chunkPos, c);
                 RedrawChunk(c);
-                c.meshRendererSolid.enabled = worldData.chunkVisibility[vIndex];
-                c.meshRendererFluid.enabled = worldData.chunkVisibility[vIndex];
+                c.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[vIndex];
+                c.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[vIndex];
                 vIndex++;
                 loadingBar.value++;
                 yield return null;

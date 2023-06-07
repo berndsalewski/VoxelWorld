@@ -1,9 +1,9 @@
-namespace VoxelWorld.Editor
-{
-    using UnityEngine;
-    using System.Collections;
-    using UnityEditor;
+using UnityEngine;
+using System.Collections;
+using UnityEditor;
 
+namespace VoxelWorld
+{
     [CustomEditor(typeof(PerlinGrapher))]
     public class PerlinGrapherHandles : Editor
     {

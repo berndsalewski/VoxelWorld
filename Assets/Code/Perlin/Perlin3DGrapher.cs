@@ -1,8 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
 namespace VoxelWorld
 {
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
 
     [ExecuteInEditMode]
     public class Perlin3DGrapher : MonoBehaviour

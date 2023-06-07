@@ -1,9 +1,9 @@
-﻿namespace VoxelWorld.Editor
-{
-    using System;
-    using UnityEditor;
-    using UnityEngine;
+﻿using System;
+using UnityEditor;
+using UnityEngine;
 
+namespace VoxelWorld
+{
     [CustomEditor(typeof(Perlin3DGrapher))]
     public class Perlin3DGrapherEditor : Editor
     {

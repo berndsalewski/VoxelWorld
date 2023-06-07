@@ -1,6 +1,7 @@
-﻿namespace VoxelWorld
+﻿using System;
+
+namespace VoxelWorld
 {
-    using System;
 
     public struct Perlin3DSettings
     {

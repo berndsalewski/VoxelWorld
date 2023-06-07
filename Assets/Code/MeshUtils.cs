@@ -1,9 +1,10 @@
-﻿namespace VoxelWorld
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using VertexData = System.Tuple<UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector2, UnityEngine.Vector2>;
+
+namespace VoxelWorld
 {
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
-    using VertexData = System.Tuple<UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector2, UnityEngine.Vector2>;
 
     public static class MeshUtils
     {

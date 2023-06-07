@@ -1,7 +1,8 @@
+using System.Text;
+using UnityEngine;
+
 namespace VoxelWorld
 {
-    using System.Text;
-    using UnityEngine;
 
     public class MeshReporter : MonoBehaviour
     {

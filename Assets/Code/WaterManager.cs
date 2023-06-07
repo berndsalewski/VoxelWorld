@@ -1,8 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
 namespace VoxelWorld
 {
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
 
     public class WaterManager : MonoBehaviour
     {

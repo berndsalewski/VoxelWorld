@@ -1,13 +1,18 @@
-﻿namespace VoxelWorld
-{
-    using System.Collections.Generic;
-    using Unity.Burst;
-    using Unity.Collections;
-    using Unity.Jobs;
-    using Unity.Mathematics;
-    using UnityEngine;
-    using UnityEngine.Rendering;
+﻿using System.Collections.Generic;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Rendering;
 
+namespace VoxelWorld
+{
+
+    /// <summary>
+    /// a Chunk contains width * height * depth blocks and is a piece of
+    /// geometry which is generated in one pass
+    /// </summary>
     public class Chunk : MonoBehaviour
     {
         public Material atlas;
@@ -21,29 +26,55 @@
         public int depth = 1;
 
         [HideInInspector]
-        public Vector3Int location;
+        public Vector3Int worldPosition;
 
-        // 3-dimensional array, x,y,z, relative coordinates within a chunk for a block
+        /// 3-dimensional array, x,y,z, relative coordinates within a chunk for a block
         public Block[,,] blocks;
 
         [HideInInspector]
         public BlockType[] chunkData;
-        // the current health (visual) of the block at the index
+        /// the current health (visual) of the block at the index
         [HideInInspector]
-        public BlockType[] healthData;
+        public BlockType[] healthData;//TODO rethink if this needs to be BlockType
         [HideInInspector]
-        public MeshRenderer meshRendererSolid;
+        public MeshRenderer meshRendererSolidBlocks;
         [HideInInspector]
-        public MeshRenderer meshRendererFluid;
+        public MeshRenderer meshRendererFluidBlocks;
+
+        private NativeArray<Unity.Mathematics.Random> RandomArray { get; set; }
+
         private GameObject solidMesh;
         private GameObject fluidMesh;
 
-        CalculateBlockTypes calculateBlockTypes;
-        JobHandle jobHandle;
-        public NativeArray<Unity.Mathematics.Random> RandomArray { get; private set; }
+        private CalculateBlockTypesJob calculateBlockTypes;
+        private JobHandle jobHandle;
 
+        /// <summary>
+        /// calculates relative chunk position from the index of a block
+        /// </summary>
+        public static Vector3Int ToBlockPosition(int index)
+        {
+            // x = i % width
+            // y = (i / width) % height
+            // z = i / (width * height)
+            return new Vector3Int(
+                index % World.chunkDimensions.x,
+                (index / World.chunkDimensions.x) % World.chunkDimensions.y,
+                index / (World.chunkDimensions.x * World.chunkDimensions.y));
+        }
 
-        // BuildChunk
+        /// <summary>
+        /// calculates the index (in chunkData) of a block from a vector position
+        /// </summary>
+        public static int ToBlockIndex(Vector3Int position)
+        {
+            // i = x + WIDTH * (y + DEPTH * z)
+            return position.x + World.chunkDimensions.x * (position.y + World.chunkDimensions.z * position.z);
+        }
+
+        /// <summary>
+        /// generates the data structure which defines which block is what type
+        /// </summary>
         private void GenerateChunkData()
         {
             int blockCount = width * height * depth;
@@ -63,13 +94,13 @@
 
             RandomArray = new NativeArray<Unity.Mathematics.Random>(randomArray, Allocator.Persistent);
 
-            calculateBlockTypes = new CalculateBlockTypes()
+            calculateBlockTypes = new CalculateBlockTypesJob()
             {
                 cData = blockTypes,
                 hData = healthTypes,
                 width = width,
                 height = height,
-                location = location,
+                location = worldPosition,
                 randoms = RandomArray
             };
 
@@ -81,46 +112,49 @@
             healthTypes.Dispose();
             RandomArray.Dispose();
 
-            BuildTrees();
+            GenerateTrees();
         }
 
-
-        (Vector3Int, BlockType)[] treeDesign = new (Vector3Int, BlockType)[]{
-        (new Vector3Int(0,3,-1), BlockType.Leaves),
-        (new Vector3Int(-1,4,-1), BlockType.Leaves),
-        (new Vector3Int(0,4,-1), BlockType.Leaves),
-        (new Vector3Int(1,4,-1), BlockType.Leaves),
-        (new Vector3Int(0,5,-1), BlockType.Leaves),
-        (new Vector3Int(0,0,0), BlockType.Wood),
-        (new Vector3Int(0,1,0), BlockType.Wood),
-        (new Vector3Int(0,2,0), BlockType.Wood),
-        (new Vector3Int(-1,3,0), BlockType.Leaves),
-        (new Vector3Int(0,3,0), BlockType.Wood),
-        (new Vector3Int(1,3,0), BlockType.Leaves),
-        (new Vector3Int(-1,4,0), BlockType.Leaves),
-        (new Vector3Int(0,4,0), BlockType.Leaves),
-        (new Vector3Int(1,4,0), BlockType.Leaves),
-        (new Vector3Int(-1,5,0), BlockType.Leaves),
-        (new Vector3Int(0,5,0), BlockType.Leaves),
-        (new Vector3Int(1,5,0), BlockType.Leaves),
-        (new Vector3Int(0,3,1), BlockType.Leaves),
-        (new Vector3Int(-1,4,1), BlockType.Leaves),
-        (new Vector3Int(0,4,1), BlockType.Leaves),
-        (new Vector3Int(1,4,1), BlockType.Leaves),
-        (new Vector3Int(0,5,1), BlockType.Leaves)
-    };
-
-        private void BuildTrees()
+        /// <summary>
+        /// places tree structure in the world (chunkData)
+        /// </summary>
+        private void GenerateTrees()
         {
+            //TODO get from scriptable object or file
+            (Vector3Int, BlockType)[] treeDesign = new (Vector3Int, BlockType)[]{
+                (new Vector3Int(0,3,-1), BlockType.Leaves),
+                (new Vector3Int(-1,4,-1), BlockType.Leaves),
+                (new Vector3Int(0,4,-1), BlockType.Leaves),
+                (new Vector3Int(1,4,-1), BlockType.Leaves),
+                (new Vector3Int(0,5,-1), BlockType.Leaves),
+                (new Vector3Int(0,0,0), BlockType.Wood),
+                (new Vector3Int(0,1,0), BlockType.Wood),
+                (new Vector3Int(0,2,0), BlockType.Wood),
+                (new Vector3Int(-1,3,0), BlockType.Leaves),
+                (new Vector3Int(0,3,0), BlockType.Wood),
+                (new Vector3Int(1,3,0), BlockType.Leaves),
+                (new Vector3Int(-1,4,0), BlockType.Leaves),
+                (new Vector3Int(0,4,0), BlockType.Leaves),
+                (new Vector3Int(1,4,0), BlockType.Leaves),
+                (new Vector3Int(-1,5,0), BlockType.Leaves),
+                (new Vector3Int(0,5,0), BlockType.Leaves),
+                (new Vector3Int(1,5,0), BlockType.Leaves),
+                (new Vector3Int(0,3,1), BlockType.Leaves),
+                (new Vector3Int(-1,4,1), BlockType.Leaves),
+                (new Vector3Int(0,4,1), BlockType.Leaves),
+                (new Vector3Int(1,4,1), BlockType.Leaves),
+                (new Vector3Int(0,5,1), BlockType.Leaves)
+            };
+
             for (int i = 0; i < chunkData.Length; i++)
             {
                 if (chunkData[i] == BlockType.Woodbase)
                 {
-                    Vector3Int treeBasePos = World.FromFlat(i);
+                    Vector3Int treeBasePos = ToBlockPosition(i);
                     foreach (var item in treeDesign)
                     {
                         Vector3Int position = treeBasePos + item.Item1;
-                        int blockIndex = World.ToFlat(position);
+                        int blockIndex = ToBlockIndex(position);
                         if (blockIndex >= 0 && blockIndex < chunkData.Length)
                         {
                             chunkData[blockIndex] = item.Item2;
@@ -132,35 +166,33 @@
         }
 
         /// <summary>
-        /// creates a chunk of blocks, created the actual geometry
+        /// creates a chunk of blocks, creates the actual geometry
         /// </summary>
-        /// <param name="dimensions">the dimensions of the chunk in number of blocks</param>
-        /// <param name="position">location in world units</param>
         public void CreateChunk(Vector3Int dimensions, Vector3Int position, bool regenerateChunkData = true)
         {
-            location = position;
+            worldPosition = position;
             width = dimensions.x;
             height = dimensions.y;
             depth = dimensions.z;
 
-            MeshFilter mfs; //solid
-            MeshRenderer mrs;
-            MeshFilter mff; //fluid
-            MeshRenderer mrf;
+            MeshFilter meshFilterSolid;
+            MeshRenderer meshRendererSolid;
+            MeshFilter meshFilterFluid;
+            MeshRenderer meshRendererFluid;
 
 
             if (solidMesh == null)
             {
                 solidMesh = new GameObject("Solid");
                 solidMesh.transform.parent = this.gameObject.transform;
-                mfs = solidMesh.AddComponent<MeshFilter>();
-                mrs = solidMesh.AddComponent<MeshRenderer>();
-                meshRendererSolid = mrs;
-                mrs.material = atlas;
+                meshFilterSolid = solidMesh.AddComponent<MeshFilter>();
+                meshRendererSolid = solidMesh.AddComponent<MeshRenderer>();
+                meshRendererSolidBlocks = meshRendererSolid;
+                meshRendererSolid.material = atlas;
             }
             else
             {
-                mfs = solidMesh.GetComponent<MeshFilter>();
+                meshFilterSolid = solidMesh.GetComponent<MeshFilter>();
                 DestroyImmediate(solidMesh.GetComponent<MeshCollider>());
             }
 
@@ -168,15 +200,15 @@
             {
                 fluidMesh = new GameObject("Fluid");
                 fluidMesh.transform.parent = this.gameObject.transform;
-                mff = fluidMesh.AddComponent<MeshFilter>();
-                mrf = fluidMesh.AddComponent<MeshRenderer>();
+                meshFilterFluid = fluidMesh.AddComponent<MeshFilter>();
+                meshRendererFluid = fluidMesh.AddComponent<MeshRenderer>();
                 fluidMesh.AddComponent<UVScroller>();
-                meshRendererFluid = mrf;
-                mrf.material = fluid;
+                meshRendererFluidBlocks = meshRendererFluid;
+                meshRendererFluid.material = fluid;
             }
             else
             {
-                mff = fluidMesh.GetComponent<MeshFilter>();
+                meshFilterFluid = fluidMesh.GetComponent<MeshFilter>();
                 DestroyImmediate(fluidMesh.GetComponent<Collider>());
             }
 
@@ -205,12 +237,12 @@
                     {
                         for (int x = 0; x < width; x++)
                         {
-                            Vector3Int blockLocation = new Vector3Int(x, y, z);
-                            int blockIndex = World.ToFlat(blockLocation);
+                            Vector3Int relativeBlockPosition = new Vector3Int(x, y, z);
+                            int blockIndex = Chunk.ToBlockIndex(relativeBlockPosition);
 
                             // create a block and it's meshes
                             blocks[x, y, z] = new Block(
-                                blockLocation + location,
+                                relativeBlockPosition + worldPosition,
                                 chunkData[blockIndex],
                                 this,
                                 healthData[blockIndex]);
@@ -253,7 +285,7 @@
 
                 var handle = job.Schedule(inputMeshes.Count, 4);
                 var newMesh = new Mesh();
-                newMesh.name = $"Chunk_{location.x}_{location.y}_{location.z}";
+                newMesh.name = $"Chunk_{worldPosition.x}_{worldPosition.y}_{worldPosition.z}";
                 name = newMesh.name;
                 var sm = new SubMeshDescriptor(0, triStart, MeshTopology.Triangles);
                 sm.firstVertex = 0;
@@ -272,23 +304,18 @@
 
                 if (pass == 0)
                 {
-                    mfs.mesh = newMesh;
+                    meshFilterSolid.mesh = newMesh;
                     MeshCollider collider = solidMesh.AddComponent<MeshCollider>();
-                    collider.sharedMesh = mfs.mesh;
+                    collider.sharedMesh = meshFilterSolid.mesh;
                 }
                 else
                 {
-                    mff.mesh = newMesh;
+                    meshFilterFluid.mesh = newMesh;
                     MeshCollider collider = fluidMesh.AddComponent<MeshCollider>();
                     fluidMesh.layer = 4;
-                    collider.sharedMesh = mff.mesh;
+                    collider.sharedMesh = meshFilterFluid.mesh;
                 }
             }
-        }
-
-        private void Update()
-        {
-            // needed later in the course, so we leave the stub
         }
 
         /// <summary>
@@ -364,7 +391,8 @@
             }
         }
 
-        struct CalculateBlockTypes : IJobParallelFor
+        //TODO is this not BurstCompile?
+        struct CalculateBlockTypesJob : IJobParallelFor
         {
             public NativeArray<BlockType> cData;
             public NativeArray<BlockType> hData;
@@ -415,9 +443,11 @@
 
                 hData[i] = BlockType.Nocrack;
 
-                float digCave = MeshUtils.fBM3D(xPos, yPos, zPos, World.caveSettings.octaves, World.caveSettings.scale, World.caveSettings.heightScale, World.caveSettings.heightOffset);
+                float digCave = MeshUtils.fBM3D(xPos, yPos, zPos, World.caveSettings.octaves, World.caveSettings.scale,
+                    World.caveSettings.heightScale, World.caveSettings.heightOffset);
 
-                float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, World.treeSettings.octaves, World.treeSettings.scale, World.treeSettings.heightScale, World.treeSettings.heightOffset);
+                float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, World.treeSettings.octaves, World.treeSettings.scale,
+                    World.treeSettings.heightScale, World.treeSettings.heightOffset);
 
                 if (yPos > surfaceHeight)
                 {

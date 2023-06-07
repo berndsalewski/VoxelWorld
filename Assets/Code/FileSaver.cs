@@ -1,10 +1,11 @@
+using System.Collections.Generic;
+using UnityEngine;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.IO;
+using System;
+
 namespace VoxelWorld
 {
-    using System.Collections.Generic;
-    using UnityEngine;
-    using System.Runtime.Serialization.Formatters.Binary;
-    using System.IO;
-    using System;
 
     [Serializable]
     public class WorldData
@@ -53,7 +54,7 @@ namespace VoxelWorld
                     allChunkData[i] = (int)blockType;
                     i++;
                 }
-                chunkVisibility[vIndex] = item.Value.meshRendererSolid.enabled;
+                chunkVisibility[vIndex] = item.Value.meshRendererSolidBlocks.enabled;
                 vIndex++;
             }
 

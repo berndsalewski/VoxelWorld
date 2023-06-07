@@ -1,8 +1,9 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
 namespace VoxelWorld
 {
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
 
     /// <summary>
     /// creates a quad, can create any of the 6 sides of a quad, center of the quad is 0,0,0
@@ -19,14 +20,15 @@ namespace VoxelWorld
     {
         public Mesh mesh;
 
-        static Vector3 p0 = new Vector3(-0.5f, -0.5f, -0.5f);
-        static Vector3 p1 = new Vector3(-0.5f, 0.5f, -0.5f);
-        static Vector3 p2 = new Vector3(0.5f, 0.5f, -0.5f);
-        static Vector3 p3 = new Vector3(0.5f, -0.5f, -0.5f);
-        static Vector3 p4 = new Vector3(0.5f, -0.5f, 0.5f);
-        static Vector3 p5 = new Vector3(-0.5f, -0.5f, 0.5f);
-        static Vector3 p6 = new Vector3(-0.5f, 0.5f, 0.5f);
-        static Vector3 p7 = new Vector3(0.5f, 0.5f, 0.5f);
+        //TODO adjust coordinates so the blocks match the unity grid
+        private static Vector3 p0 = new Vector3(-0.5f, -0.5f, -0.5f);
+        private static Vector3 p1 = new Vector3(-0.5f, 0.5f, -0.5f);
+        private static Vector3 p2 = new Vector3(0.5f, 0.5f, -0.5f);
+        private static Vector3 p3 = new Vector3(0.5f, -0.5f, -0.5f);
+        private static Vector3 p4 = new Vector3(0.5f, -0.5f, 0.5f);
+        private static Vector3 p5 = new Vector3(-0.5f, -0.5f, 0.5f);
+        private static Vector3 p6 = new Vector3(-0.5f, 0.5f, 0.5f);
+        private static Vector3 p7 = new Vector3(0.5f, 0.5f, 0.5f);
 
         public Quad(BlockSide side, Vector3 offset, BlockType blockType, BlockType healthType)
         {
@@ -85,21 +87,20 @@ namespace VoxelWorld
             mesh.vertices = vertices;
             mesh.normals = normals;
             mesh.uv = new Vector2[] {
-            MeshUtils.BlockUVs[(int)blockType, 0],
-            MeshUtils.BlockUVs[(int)blockType, 1],
-            MeshUtils.BlockUVs[(int)blockType, 2],
-            MeshUtils.BlockUVs[(int)blockType, 3]
-        };
+                MeshUtils.BlockUVs[(int)blockType, 0],
+                MeshUtils.BlockUVs[(int)blockType, 1],
+                MeshUtils.BlockUVs[(int)blockType, 2],
+                MeshUtils.BlockUVs[(int)blockType, 3]
+            };
 
             mesh.uv2 = new Vector2[] {
-            MeshUtils.BlockUVs[(int)healthType, 0],
-            MeshUtils.BlockUVs[(int)healthType, 1],
-            MeshUtils.BlockUVs[(int)healthType, 2],
-            MeshUtils.BlockUVs[(int)healthType, 3]
-        };
+                MeshUtils.BlockUVs[(int)healthType, 0],
+                MeshUtils.BlockUVs[(int)healthType, 1],
+                MeshUtils.BlockUVs[(int)healthType, 2],
+                MeshUtils.BlockUVs[(int)healthType, 3]
+            };
 
             mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
-            ;
 
             // TODO: docs say that setting triangles automatically recalculates bounds, so this is not necessary?
             // https://docs.unity3d.com/ScriptReference/Mesh.RecalculateBounds.html

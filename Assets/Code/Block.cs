@@ -1,19 +1,21 @@
-﻿namespace VoxelWorld
+﻿using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+
+namespace VoxelWorld
 {
-    using UnityEngine;
-    using System.Collections;
-    using System.Collections.Generic;
 
     /// <summary>
-    /// creates a mesh for a block, built out of Quads
+    /// creates a mesh for a block, built out of Quads,
+    /// the dimensions of a block are 1x1x1 in Unity units
     /// </summary>
     public class Block
     {
         public Mesh mesh;
-        Chunk parentChunk;
 
-        // Use this for initialization
-        public Block(Vector3Int offset, BlockType blockType, Chunk chunk, BlockType healthType)
+        private Chunk parentChunk;
+
+        public Block(Vector3Int worldBlockPosition, BlockType blockType, Chunk parent, BlockType healthType)
         {
 
             if (blockType == BlockType.Air)
@@ -21,38 +23,38 @@
                 return;
             }
 
-            parentChunk = chunk;
-            Vector3Int localBlockPos = offset - chunk.location;
+            parentChunk = parent;
+            Vector3Int localBlockPos = worldBlockPosition - parentChunk.worldPosition;
 
             List<Quad> quads = new List<Quad>();
-            if (CanDrawQuad(localBlockPos + Vector3Int.up, blockType))
+            if (MustDrawQuad(localBlockPos + Vector3Int.up, blockType))
             {
-                quads.Add(new Quad(BlockSide.Top, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Top, worldBlockPosition, blockType, healthType));
             }
 
-            if (CanDrawQuad(localBlockPos + Vector3Int.down, blockType))
+            if (MustDrawQuad(localBlockPos + Vector3Int.down, blockType))
             {
-                quads.Add(new Quad(BlockSide.Bottom, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Bottom, worldBlockPosition, blockType, healthType));
             }
 
-            if (CanDrawQuad(localBlockPos + Vector3Int.back, blockType))
+            if (MustDrawQuad(localBlockPos + Vector3Int.back, blockType))
             {
-                quads.Add(new Quad(BlockSide.Front, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Front, worldBlockPosition, blockType, healthType));
             }
 
-            if (CanDrawQuad(localBlockPos + Vector3Int.forward, blockType))
+            if (MustDrawQuad(localBlockPos + Vector3Int.forward, blockType))
             {
-                quads.Add(new Quad(BlockSide.Back, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Back, worldBlockPosition, blockType, healthType));
             }
 
-            if (CanDrawQuad(localBlockPos + Vector3Int.left, blockType))
+            if (MustDrawQuad(localBlockPos + Vector3Int.left, blockType))
             {
-                quads.Add(new Quad(BlockSide.Left, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Left, worldBlockPosition, blockType, healthType));
             }
 
-            if (CanDrawQuad(localBlockPos + Vector3Int.right, blockType))
+            if (MustDrawQuad(localBlockPos + Vector3Int.right, blockType))
             {
-                quads.Add(new Quad(BlockSide.Right, offset, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Right, worldBlockPosition, blockType, healthType));
             }
 
             if (quads.Count == 0)
@@ -71,21 +73,19 @@
             mesh = MeshUtils.MergeMeshes(sideMeshes);
         }
 
-
-
-        private bool CanDrawQuad(Vector3Int pos, BlockType blockType)
+        private bool MustDrawQuad(Vector3Int neighbourBlockPos, BlockType ownBlockType)
         {
-            if (isNextChunkBlock(pos))
+            if (IsOutsideOfChunk(neighbourBlockPos))
             {
                 return true;
             }
 
-            if (IsAirBlock(pos))
+            if (IsAirBlock(neighbourBlockPos))
             {
                 return true;
             }
 
-            if (IsWaterBlock(pos) && blockType != BlockType.Water)
+            if (IsWaterBlock(neighbourBlockPos) && ownBlockType != BlockType.Water)
             {
                 return true;
             }
@@ -95,15 +95,15 @@
 
         private bool IsAirBlock(Vector3Int pos)
         {
-            return parentChunk.chunkData[World.ToFlat(pos)] == BlockType.Air;
+            return parentChunk.chunkData[Chunk.ToBlockIndex(pos)] == BlockType.Air;
         }
 
         private bool IsWaterBlock(Vector3Int pos)
         {
-            return parentChunk.chunkData[World.ToFlat(pos)] == BlockType.Water;
+            return parentChunk.chunkData[Chunk.ToBlockIndex(pos)] == BlockType.Water;
         }
 
-        private bool isNextChunkBlock(Vector3Int pos)
+        private bool IsOutsideOfChunk(Vector3Int pos)
         {
             return (pos.x < 0 || pos.x >= parentChunk.width
                 || pos.y < 0 || pos.y >= parentChunk.height
