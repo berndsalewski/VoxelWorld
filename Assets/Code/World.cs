@@ -12,10 +12,11 @@ namespace VoxelWorld
     /// </summary>
     public class World : MonoBehaviour
     {
-        [Header("World Configuration")]
+        //TODO configuration in a scriptable object
+        [Header("World Configuration")]//TODO configuration in a scriptable object
         // these values mean number of chunk (columns)
-        public static Vector3Int worldDimensions = new Vector3Int(5, 5, 5);
-        public static Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
+        public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);
+        public Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
 
         // block count in a single chunk
         public static Vector3Int chunkDimensions = new Vector3Int(10, 10, 10);

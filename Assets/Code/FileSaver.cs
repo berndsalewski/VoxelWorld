@@ -6,7 +6,6 @@ using System;
 
 namespace VoxelWorld
 {
-
     [Serializable]
     public class WorldData
     {
@@ -68,21 +67,21 @@ namespace VoxelWorld
     public static class FileSaver
     {
         private static WorldData worldData;
-        static string BuildFileName()
+        static string BuildFileName(Vector3 worldDimensions)
         {
             return Application.persistentDataPath
                 + "/savedata/World_"
                 + World.chunkDimensions.x + "_"
                 + World.chunkDimensions.y + "_"
                 + World.chunkDimensions.z + "_"
-                + World.worldDimensions.x + "_"
-                + World.worldDimensions.y + "_"
-                + World.worldDimensions.z + ".dat";
+                + worldDimensions.x + "_"
+                + worldDimensions.y + "_"
+                + worldDimensions.z + ".dat";
         }
 
         public static void Save(World world)
         {
-            string fileName = BuildFileName();
+            string fileName = BuildFileName(world.worldDimensions);
             if (!File.Exists(fileName))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(fileName));
@@ -95,9 +94,9 @@ namespace VoxelWorld
             Debug.Log($"Saving World to File: {fileName}");
         }
 
-        public static WorldData Load()
+        public static WorldData Load(World world)
         {
-            string fileName = BuildFileName();
+            string fileName = BuildFileName(world.worldDimensions);
             if (File.Exists(fileName))
             {
                 BinaryFormatter bf = new BinaryFormatter();
