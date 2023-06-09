@@ -47,7 +47,9 @@ namespace VoxelWorld
         public static Perlin3DSettings treeSettings;
         public Perlin3DGrapher trees;
 
-        // ChunkChecker: keeps track of which chunks have been created already
+        public GameObject highlightBlock;
+
+        /// keeps track of which chunks have been created already
         public HashSet<Vector3Int> createdChunks = new HashSet<Vector3Int>();
 
         // chunkColumns: keeps track of the created chunk columns, position in world coordinates
@@ -167,63 +169,91 @@ namespace VoxelWorld
             return (newChunkPos, newBlockPos);
         }
 
-
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
+            RaycastHit hit;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out hit, 10))
             {
-                RaycastHit hit;
-                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                if (Physics.Raycast(ray, out hit, 10))
+                if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
                 {
-                    Vector3 hitBlock;
+                    HandleMouseInput(hit);
+                }
 
-                    if (Input.GetMouseButton(0))
+                Vector3 highlightBlockCenterPoint = hit.point - hit.normal * Block.HALF_BLOCK_SIZE;
+                highlightBlockCenterPoint.x = Mathf.Floor(highlightBlockCenterPoint.x);
+                highlightBlockCenterPoint.y = Mathf.Floor(highlightBlockCenterPoint.y);
+                highlightBlockCenterPoint.z = Mathf.Floor(highlightBlockCenterPoint.z);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                // for debug output, see OnGui
+                selectedBlockWorldPosition = highlightBlockCenterPoint;
+                didRaycastHitACollider = true;
+                hitColliderName = hit.collider.name;
+                rayCastHitPoint = hit.point;
+#endif
+
+                highlightBlockCenterPoint += moveToCenterVector;
+                highlightBlock.transform.position = highlightBlockCenterPoint;
+                highlightBlock.SetActive(true);
+            }
+            else
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                didRaycastHitACollider = false;
+#endif
+                highlightBlock.SetActive(false);
+            }
+        }
+
+        private void HandleMouseInput(RaycastHit hit)
+        {
+            Vector3 hitBlock;
+            if (Input.GetMouseButton(0))
+            {
+                hitBlock = hit.point - hit.normal * Block.HALF_BLOCK_SIZE;
+            }
+            else
+            {
+                hitBlock = hit.point + hit.normal * Block.HALF_BLOCK_SIZE;
+            }
+
+            (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToCoordinates(hitBlock);
+            Chunk thisChunk = chunks[chunkPosition];
+            int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
+
+            // delete blocks with left mousebutton
+            if (Input.GetMouseButton(0))
+            {
+                if (MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]] > -1)
+                {
+                    thisChunk.healthData[currentBlockIndex]++;
+                    if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack +
+                        MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
                     {
-                        hitBlock = hit.point - hit.normal * 0.5f;
-                    }
-                    else
-                    {
-                        hitBlock = hit.point + hit.normal * 0.5f;
-                    }
+                        Debug.Log($"Delete at chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                        thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
 
-                    (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToLocal(hitBlock);
-                    Chunk thisChunk = chunks[chunkPosition];
-                    int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
-
-                    // delete blocks with left mousebutton
-                    if (Input.GetMouseButton(0))
-                    {
-                        if (MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]] > -1)
-                        {
-                            thisChunk.healthData[currentBlockIndex]++;
-                            if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack + MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
-                            {
-                                Debug.Log($"Delete at chunk:{thisChunk.worldPosition} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
-                                thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
-
-                                //TODO
-                                Vector3Int aboveBlock = blockPosition + Vector3Int.up;
-                                (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustGridPosition(chunkPosition, aboveBlock);
-                                int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
-                                StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
-                            }
-
-                            StartCoroutine(HealBlock(thisChunk, currentBlockIndex));
-                        }
-                    }
-                    // build block
-                    else
-                    {
-                        Debug.Log($"Build in chunk:{thisChunk.worldPosition} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
-                        thisChunk.chunkData[currentBlockIndex] = buildBlockType;
-                        thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
-                        StartCoroutine(Drop(thisChunk, currentBlockIndex));
+                        // takes care of dropping blocks
+                        Vector3Int aboveBlock = blockPosition + Vector3Int.up;
+                        (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
+                        int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
+                        StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
                     }
 
-                    RedrawChunk(thisChunk);
+                    StartCoroutine(HealBlock(thisChunk, currentBlockIndex));
                 }
             }
+            // build block with right mouse button
+            else
+            {
+                Debug.Log($"Build in chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                thisChunk.chunkData[currentBlockIndex] = buildBlockType;
+                thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
+                StartCoroutine(Drop(thisChunk, currentBlockIndex));
+            }
+
+            RedrawChunk(thisChunk);
         }
 
         /// <summary>
@@ -626,5 +656,37 @@ namespace VoxelWorld
             buildQueue.Enqueue(BuildWorldRecursively(worldX - chunkDimensions.x, worldZ, nextRadius));
             yield return null;
         }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        private Vector3 moveToCenterVector = new Vector3(0.5f, 0.5f, 0.5f);
+        private Vector3 selectedBlockWorldPosition;
+        private Vector3 rayCastHitPoint;
+        private bool didRaycastHitACollider;
+        private string hitColliderName;
+
+        private void OnGUI()
+        {
+            if (didRaycastHitACollider)
+            {
+                (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToCoordinates(selectedBlockWorldPosition);
+                int blockIndex = Chunk.ToBlockIndex(blockPosition);
+                BlockType blockType = chunks[chunkPosition].chunkData[blockIndex];
+
+                GUIStyle boxStyle = new GUIStyle();
+                boxStyle.alignment = TextAnchor.UpperLeft;
+                boxStyle.normal.textColor = Color.white;
+                boxStyle.normal.background = Texture2D.grayTexture;
+                boxStyle.padding.left = 5;
+                boxStyle.padding.top = 5;
+
+                GUI.Box(new Rect(10f, 10f, 160f, 24f), $"Chunk: {chunkPosition}", boxStyle);
+                GUI.Box(new Rect(10f, 35f, 160f, 24f), $"Block: {blockPosition}", boxStyle);
+                GUI.Box(new Rect(10f, 60f, 160f, 24f), $"Block Id:  {blockIndex}", boxStyle);
+                GUI.Box(new Rect(10f, 85f, 160f, 24f), $"Type:  {blockType}", boxStyle);
+                GUI.Box(new Rect(10f, 110f, 160f, 24f), $"Hit:  {rayCastHitPoint}", boxStyle);
+                GUI.Box(new Rect(10f, 135f, 160f, 24f), $"Collider:  {hitColliderName}", boxStyle);
+            }
+        }
+#endif
     }
 }
