@@ -178,7 +178,7 @@ namespace VoxelWorld
         {
             RaycastHit hit;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit, 10))
+            if (Physics.Raycast(ray, out hit, 10, int.MaxValue, QueryTriggerInteraction.Ignore))
             {
                 if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
                 {
@@ -194,7 +194,7 @@ namespace VoxelWorld
                 // for debug output, see OnGui
                 selectedBlockWorldPosition = highlightBlockCenterPoint;
                 didRaycastHitACollider = true;
-                hitColliderName = hit.collider.name;
+                hitColliderName = hit.collider?.name;
                 rayCastHitPoint = hit.point;
 #endif
 
