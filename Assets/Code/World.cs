@@ -72,6 +72,7 @@ namespace VoxelWorld
         private WaitForSeconds waitFor100ms = new WaitForSeconds(0.1f);
 
         private BlockType buildBlockType = BlockType.Dirt;
+        private Vector3 moveToCenterVector = new Vector3(0.5f, 0.5f, 0.5f);
 
         // Use this for initialization
         private void Start()
@@ -655,7 +656,6 @@ namespace VoxelWorld
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private Vector3 moveToCenterVector = new Vector3(0.5f, 0.5f, 0.5f);
         private Vector3 selectedBlockWorldPosition;
         private Vector3 rayCastHitPoint;
         private bool didRaycastHitACollider;
