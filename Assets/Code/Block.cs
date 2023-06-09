@@ -11,11 +11,19 @@ namespace VoxelWorld
     /// </summary>
     public class Block
     {
+        /// <summary>
+        /// length of a side of a block in Unity units
+        /// </summary>
+        public const float BLOCK_SIZE = 1f;
+        public const float HALF_BLOCK_SIZE = BLOCK_SIZE * 0.5f;
+
+        private static Vector3 blockOffset = new Vector3(0.5f, 0.5f, 0.5f);
+
         public Mesh mesh;
 
         private Chunk parentChunk;
 
-        public Block(Vector3Int worldBlockPosition, BlockType blockType, Chunk parent, BlockType healthType)
+        public Block(Vector3Int localCoordinates, Vector3Int chunkCoordinates, BlockType blockType, Chunk parent, BlockType healthType)
         {
 
             if (blockType == BlockType.Air)
@@ -24,37 +32,38 @@ namespace VoxelWorld
             }
 
             parentChunk = parent;
-            Vector3Int localBlockPos = worldBlockPosition - parentChunk.worldPosition;
+            
+            Vector3 worldPosition = localCoordinates + chunkCoordinates + blockOffset;
 
             List<Quad> quads = new List<Quad>();
-            if (MustDrawQuad(localBlockPos + Vector3Int.up, blockType))
+            if (MustDrawQuad(localCoordinates + Vector3Int.up, blockType))
             {
-                quads.Add(new Quad(BlockSide.Top, worldBlockPosition, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Top, worldPosition, blockType, healthType));
             }
 
-            if (MustDrawQuad(localBlockPos + Vector3Int.down, blockType))
+            if (MustDrawQuad(localCoordinates + Vector3Int.down, blockType))
             {
-                quads.Add(new Quad(BlockSide.Bottom, worldBlockPosition, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Bottom, worldPosition, blockType, healthType));
             }
 
-            if (MustDrawQuad(localBlockPos + Vector3Int.back, blockType))
+            if (MustDrawQuad(localCoordinates + Vector3Int.back, blockType))
             {
-                quads.Add(new Quad(BlockSide.Front, worldBlockPosition, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Front, worldPosition, blockType, healthType));
             }
 
-            if (MustDrawQuad(localBlockPos + Vector3Int.forward, blockType))
+            if (MustDrawQuad(localCoordinates + Vector3Int.forward, blockType))
             {
-                quads.Add(new Quad(BlockSide.Back, worldBlockPosition, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Back, worldPosition, blockType, healthType));
             }
 
-            if (MustDrawQuad(localBlockPos + Vector3Int.left, blockType))
+            if (MustDrawQuad(localCoordinates + Vector3Int.left, blockType))
             {
-                quads.Add(new Quad(BlockSide.Left, worldBlockPosition, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Left, worldPosition, blockType, healthType));
             }
 
-            if (MustDrawQuad(localBlockPos + Vector3Int.right, blockType))
+            if (MustDrawQuad(localCoordinates + Vector3Int.right, blockType))
             {
-                quads.Add(new Quad(BlockSide.Right, worldBlockPosition, blockType, healthType));
+                quads.Add(new Quad(BlockSide.Right, worldPosition, blockType, healthType));
             }
 
             if (quads.Count == 0)
@@ -73,19 +82,19 @@ namespace VoxelWorld
             mesh = MeshUtils.MergeMeshes(sideMeshes);
         }
 
-        private bool MustDrawQuad(Vector3Int neighbourBlockPos, BlockType ownBlockType)
+        private bool MustDrawQuad(Vector3Int neighbourBlockCoordinates, BlockType ownBlockType)
         {
-            if (IsOutsideOfChunk(neighbourBlockPos))
+            if (IsOutsideOfChunk(neighbourBlockCoordinates))
             {
                 return true;
             }
 
-            if (IsAirBlock(neighbourBlockPos))
+            if (IsAirBlock(neighbourBlockCoordinates))
             {
                 return true;
             }
 
-            if (IsWaterBlock(neighbourBlockPos) && ownBlockType != BlockType.Water)
+            if (IsWaterBlock(neighbourBlockCoordinates) && ownBlockType != BlockType.Water)
             {
                 return true;
             }
@@ -93,21 +102,21 @@ namespace VoxelWorld
             return false;
         }
 
-        private bool IsAirBlock(Vector3Int pos)
+        private bool IsAirBlock(Vector3Int coordinates)
         {
-            return parentChunk.chunkData[Chunk.ToBlockIndex(pos)] == BlockType.Air;
+            return parentChunk.chunkData[Chunk.ToBlockIndex(coordinates)] == BlockType.Air;
         }
 
-        private bool IsWaterBlock(Vector3Int pos)
+        private bool IsWaterBlock(Vector3Int coordinates)
         {
-            return parentChunk.chunkData[Chunk.ToBlockIndex(pos)] == BlockType.Water;
+            return parentChunk.chunkData[Chunk.ToBlockIndex(coordinates)] == BlockType.Water;
         }
 
-        private bool IsOutsideOfChunk(Vector3Int pos)
+        private bool IsOutsideOfChunk(Vector3Int coordinates)
         {
-            return (pos.x < 0 || pos.x >= parentChunk.width
-                || pos.y < 0 || pos.y >= parentChunk.height
-                || pos.z < 0 || pos.z >= parentChunk.depth);
+            return (coordinates.x < 0 || coordinates.x >= parentChunk.xBlockCount
+                || coordinates.y < 0 || coordinates.y >= parentChunk.yBlockCount
+                || coordinates.z < 0 || coordinates.z >= parentChunk.zBlockCount);
         }
     }
 }

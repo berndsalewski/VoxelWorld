@@ -19,14 +19,14 @@ namespace VoxelWorld
         public Material fluid;
 
         [HideInInspector]
-        public int width = 1;
+        public int xBlockCount = 1;
         [HideInInspector]
-        public int height = 1;
+        public int yBlockCount = 1;
         [HideInInspector]
-        public int depth = 1;
+        public int zBlockCount = 1;
 
         [HideInInspector]
-        public Vector3Int worldPosition;
+        public Vector3Int coordinates;
 
         /// 3-dimensional array, x,y,z, relative coordinates within a chunk for a block
         public Block[,,] blocks;
@@ -52,7 +52,7 @@ namespace VoxelWorld
         /// <summary>
         /// calculates relative chunk position from the index of a block
         /// </summary>
-        public static Vector3Int ToBlockPosition(int index)
+        public static Vector3Int ToBlockCoordinates(int index)
         {
             // x = i % width
             // y = (i / width) % height
@@ -66,10 +66,10 @@ namespace VoxelWorld
         /// <summary>
         /// calculates the index (in chunkData) of a block from a vector position
         /// </summary>
-        public static int ToBlockIndex(Vector3Int position)
+        public static int ToBlockIndex(Vector3Int coordinates)
         {
             // i = x + WIDTH * (y + DEPTH * z)
-            return position.x + World.chunkDimensions.x * (position.y + World.chunkDimensions.z * position.z);
+            return coordinates.x + World.chunkDimensions.x * (coordinates.y + World.chunkDimensions.z * coordinates.z);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace VoxelWorld
         /// </summary>
         private void GenerateChunkData()
         {
-            int blockCount = width * height * depth;
+            int blockCount = xBlockCount * yBlockCount * zBlockCount;
             chunkData = new BlockType[blockCount];
             healthData = new BlockType[blockCount];
             NativeArray<BlockType> blockTypes = new NativeArray<BlockType>(chunkData, Allocator.Persistent);
@@ -98,9 +98,9 @@ namespace VoxelWorld
             {
                 cData = blockTypes,
                 hData = healthTypes,
-                width = width,
-                height = height,
-                location = worldPosition,
+                width = xBlockCount,
+                height = yBlockCount,
+                location = coordinates,
                 randoms = RandomArray
             };
 
@@ -150,7 +150,7 @@ namespace VoxelWorld
             {
                 if (chunkData[i] == BlockType.Woodbase)
                 {
-                    Vector3Int treeBasePos = ToBlockPosition(i);
+                    Vector3Int treeBasePos = ToBlockCoordinates(i);
                     foreach (var item in treeDesign)
                     {
                         Vector3Int position = treeBasePos + item.Item1;
@@ -168,13 +168,13 @@ namespace VoxelWorld
         /// <summary>
         /// creates a chunk of blocks, creates the actual geometry
         /// </summary>
-        public void CreateChunk(Vector3Int dimensions, Vector3Int position, bool regenerateChunkData = true)
+        public void CreateChunk(Vector3Int dimensions, Vector3Int coordinates, bool regenerateChunkData = true)
         {
-            worldPosition = position;
-            width = dimensions.x;
-            height = dimensions.y;
-            depth = dimensions.z;
-
+            this.coordinates = coordinates;
+            xBlockCount = dimensions.x;
+            yBlockCount = dimensions.y;
+            zBlockCount = dimensions.z;
+            
             MeshFilter meshFilterSolid;
             MeshRenderer meshRendererSolid;
             MeshFilter meshFilterFluid;
@@ -212,7 +212,7 @@ namespace VoxelWorld
                 DestroyImmediate(fluidMesh.GetComponent<Collider>());
             }
 
-            blocks = new Block[width, height, depth];
+            blocks = new Block[xBlockCount, yBlockCount, zBlockCount];
 
             if (regenerateChunkData)
             {
@@ -224,25 +224,26 @@ namespace VoxelWorld
                 var inputMeshes = new List<Mesh>();
                 int vertexStart = 0;
                 int triStart = 0;
-                int meshCount = width * height * depth;
+                int meshCount = xBlockCount * yBlockCount * zBlockCount;
                 int m = 0;
                 var job = new ProcessMeshDataJob();
                 job.vertexStart = new NativeArray<int>(meshCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
                 job.triStart = new NativeArray<int>(meshCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
 
 
-                for (int z = 0; z < depth; z++)
+                for (int z = 0; z < zBlockCount; z++)
                 {
-                    for (int y = 0; y < height; y++)
+                    for (int y = 0; y < yBlockCount; y++)
                     {
-                        for (int x = 0; x < width; x++)
+                        for (int x = 0; x < xBlockCount; x++)
                         {
-                            Vector3Int relativeBlockPosition = new Vector3Int(x, y, z);
-                            int blockIndex = Chunk.ToBlockIndex(relativeBlockPosition);
+                            Vector3Int blockCoordinates = new Vector3Int(x, y, z);
+                            int blockIndex = Chunk.ToBlockIndex(blockCoordinates);
 
                             // create a block and it's meshes
                             blocks[x, y, z] = new Block(
-                                relativeBlockPosition + worldPosition,
+                                blockCoordinates,
+                                this.coordinates,
                                 chunkData[blockIndex],
                                 this,
                                 healthData[blockIndex]);
@@ -285,7 +286,7 @@ namespace VoxelWorld
 
                 var handle = job.Schedule(inputMeshes.Count, 4);
                 var newMesh = new Mesh();
-                newMesh.name = $"Chunk_{worldPosition.x}_{worldPosition.y}_{worldPosition.z}";
+                newMesh.name = $"Chunk_{this.coordinates.x}_{this.coordinates.y}_{this.coordinates.z}";
                 name = newMesh.name;
                 var sm = new SubMeshDescriptor(0, triStart, MeshTopology.Triangles);
                 sm.firstVertex = 0;

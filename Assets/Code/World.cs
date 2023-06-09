@@ -52,13 +52,13 @@ namespace VoxelWorld
         /// keeps track of which chunks have been created already
         public HashSet<Vector3Int> createdChunks = new HashSet<Vector3Int>();
 
-        // chunkColumns: keeps track of the created chunk columns, position in world coordinates
+        /// keeps track of the created chunk columns, position in world coordinates
         public HashSet<Vector2Int> createdChunkColumns = new HashSet<Vector2Int>();
 
-        // lookup for all created chunks
+        /// lookup for all created chunks
         public Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
 
-        // lastBuildPosition: at which player position did we last trigger the addition of new chunks
+        // at which player position did we last trigger the addition of new chunks
         Vector3Int lastPlayerPositionTriggeringNewChunks;
 
         // holds coroutines for building chunks and hiding chunk columns
@@ -68,6 +68,10 @@ namespace VoxelWorld
         private int chunkColumnDrawRadius = 3;
 
         private WaitForSeconds waitFor500Ms = new WaitForSeconds(0.5f);
+        private WaitForSeconds waitFor3Seconds = new WaitForSeconds(3);
+        private WaitForSeconds waitFor100ms = new WaitForSeconds(0.1f);
+
+        private BlockType buildBlockType = BlockType.Dirt;
 
         // Use this for initialization
         private void Start()
@@ -90,7 +94,6 @@ namespace VoxelWorld
             }
         }
 
-        private BlockType buildBlockType = BlockType.Dirt;
         /// <summary>
         /// used by Buttons in Scene
         /// </summary>
@@ -102,30 +105,32 @@ namespace VoxelWorld
         }
 
         // System.Tuple<Vector3Int, Vector3Int> can be written as (Vector3Int, Vector3Int) since C#7
-        // supposed to wrap indices when we cross from one chunk to another one.poor naming of method
-        // formerly: GetWorldNeighbour, better name would probably FromWorldPosToLocal or similar
-        public (Vector3Int, Vector3Int) FromWorldPosToLocal(Vector3 worldPos)
+        // computes chunk and block coordinates for a given point in the world
+        // currently only works if blocks have a size of 1 and are aligned to the unity grid
+        public (Vector3Int, Vector3Int) FromWorldPosToCoordinates(Vector3 worldPos)
         {
-            Vector3Int chunkPosition = new Vector3Int();
-            chunkPosition.x = (int)((worldPos.x + 0.5f) / chunkDimensions.x) * chunkDimensions.x;
-            chunkPosition.y = (int)((worldPos.y + 0.5f) / chunkDimensions.y) * chunkDimensions.y;
-            chunkPosition.z = (int)((worldPos.z + 0.5f) / chunkDimensions.z) * chunkDimensions.z;
+            //Debug.Log($"World:{worldPos}");
+            Vector3Int chunkCoordinates = new Vector3Int();
+            chunkCoordinates.x = (int)((worldPos.x /*+ 0.5f*/) / chunkDimensions.x) * chunkDimensions.x;
+            chunkCoordinates.y = (int)((worldPos.y /*+ 0.5f*/) / chunkDimensions.y) * chunkDimensions.y;
+            chunkCoordinates.z = (int)((worldPos.z /*+ 0.5f*/) / chunkDimensions.z) * chunkDimensions.z;
 
-            Vector3Int blockPosition = new Vector3Int();
-            blockPosition.x = (int)Mathf.Round(worldPos.x) - chunkPosition.x;
-            blockPosition.y = (int)Mathf.Round(worldPos.y) - chunkPosition.y;
-            blockPosition.z = (int)Mathf.Round(worldPos.z) - chunkPosition.z;
+            Vector3Int blockCoordinates = new Vector3Int();
+            blockCoordinates.x = Mathf.FloorToInt(worldPos.x) - chunkCoordinates.x;
+            blockCoordinates.y = Mathf.FloorToInt(worldPos.y) - chunkCoordinates.y;
+            blockCoordinates.z = Mathf.FloorToInt(worldPos.z) - chunkCoordinates.z;
 
-            return (chunkPosition, blockPosition);
+            //Debug.Log($"Chunk {chunkCoordinates} Block {blockCoordinates}");
+            return (chunkCoordinates, blockCoordinates);
         }
 
         /// <summary>
-        /// adjust local relative to chunk block position if it crosses into neighbouring chunks
+        /// adjust local block coordinate relative to chunk block coordinate if it crosses into neighbouring chunks
         /// </summary>
         /// <param name="chunkPos"></param>
         /// <param name="blockPos"></param>
         /// <returns></returns>
-        public (Vector3Int, Vector3Int) AdjustGridPosition(Vector3Int chunkPos, Vector3Int blockPos)
+        public (Vector3Int, Vector3Int) AdjustCoordinatesToGrid(Vector3Int chunkPos, Vector3Int blockPos)
         {
             Vector3Int newChunkPos = chunkPos;
             Vector3Int newBlockPos = blockPos;
@@ -257,7 +262,7 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        ///
+        /// creates a new column of chunks
         /// </summary>
         /// <param name="worldX">world x</param>
         /// <param name="worldZ">world z</param>
@@ -268,19 +273,19 @@ namespace VoxelWorld
 
             for (int gridY = 0; gridY < worldDimensions.y; gridY++)
             {
-                Vector3Int position = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
-                if (!createdChunks.Contains(position))
+                Vector3Int coordinates = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
+                if (!createdChunks.Contains(coordinates))
                 {
                     GameObject chunkGO = Instantiate(chunkPrefab);
                     Chunk chunk = chunkGO.GetComponent<Chunk>();
-                    chunk.CreateChunk(chunkDimensions, position);
-                    createdChunks.Add(position);
-                    chunks.Add(position, chunk);
-                    Debug.Log($"Chunk created at {position}");
+                    chunk.CreateChunk(chunkDimensions, coordinates);
+                    createdChunks.Add(coordinates);
+                    chunks.Add(coordinates, chunk);
+                    Debug.Log($"Chunk created at {coordinates}");
                 }
 
-                chunks[position].meshRendererSolidBlocks.enabled = meshEnabled;
-                chunks[position].meshRendererFluidBlocks.enabled = meshEnabled;
+                chunks[coordinates].meshRendererSolidBlocks.enabled = meshEnabled;
+                chunks[coordinates].meshRendererFluidBlocks.enabled = meshEnabled;
 
             }
 
@@ -318,8 +323,6 @@ namespace VoxelWorld
         /// <summary>
         /// disables the mesh renderer of a chunk if that chunk exists already
         /// </summary>
-        /// <param name="worldX"></param>
-        /// <param name="worldZ"></param>
         private void HideChunkColumn(int worldX, int worldZ)
         {
             for (int y = 0; y < worldDimensions.y; y++)
@@ -333,7 +336,6 @@ namespace VoxelWorld
             }
         }
 
-        private WaitForSeconds waitFor3Seconds = new WaitForSeconds(3);
         private IEnumerator HealBlock(Chunk c, int blockIndex)
         {
             yield return waitFor3Seconds;
@@ -345,18 +347,17 @@ namespace VoxelWorld
             }
         }
 
-        private WaitForSeconds dropDelay = new WaitForSeconds(0.1f);
         private IEnumerator Drop(Chunk chunk, int blockIndex, int strength = 3)
         {
             if (!MeshUtils.canDrop.Contains(chunk.chunkData[blockIndex]))
             {
                 yield break;
             }
-            yield return dropDelay;
+            yield return waitFor100ms;
             while (true)
             {
-                Vector3Int thisBlockPos = Chunk.ToBlockPosition(blockIndex);
-                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = AdjustGridPosition(chunk.worldPosition, thisBlockPos + Vector3Int.down);
+                Vector3Int thisBlockPos = Chunk.ToBlockCoordinates(blockIndex);
+                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = AdjustCoordinatesToGrid(chunk.coordinates, thisBlockPos + Vector3Int.down);
                 int belowBlockIndex = Chunk.ToBlockIndex(adjustedBelowBlockPos);
                 Chunk chunkOfBelowBlock = chunks[chunkPosOfBelowBlock];
                 if (chunkOfBelowBlock != null && chunkOfBelowBlock.chunkData[belowBlockIndex] == BlockType.Air)
@@ -370,11 +371,11 @@ namespace VoxelWorld
 
                     // test if there is a fallable block above the new air block
                     Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
-                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustGridPosition(chunk.worldPosition, aboveBlock);
+                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustCoordinatesToGrid(chunk.coordinates, aboveBlock);
                     int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                     StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
 
-                    yield return dropDelay;
+                    yield return waitFor100ms;
 
                     RedrawChunk(chunk);
                     if (chunkOfBelowBlock != chunk)
@@ -387,10 +388,10 @@ namespace VoxelWorld
                 }
                 else if (MeshUtils.canFlow.Contains(chunk.chunkData[blockIndex]))
                 {
-                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.left, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.right, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.forward, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.worldPosition, Vector3Int.back, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.left, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.right, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.forward, strength);
+                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.back, strength);
                     yield break;
                 }
                 else
@@ -409,7 +410,7 @@ namespace VoxelWorld
             }
 
             Vector3Int neighbourPosition = blockPosition + neighbourDirection;
-            (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = AdjustGridPosition(chunkPosition, neighbourPosition);
+            (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = AdjustCoordinatesToGrid(chunkPosition, neighbourPosition);
 
             int neighbourBlockIndex = Chunk.ToBlockIndex(neighbourBlockPos);
             Chunk neighbourChunk = chunks[neighbourChunkPos];
@@ -429,12 +430,12 @@ namespace VoxelWorld
             }
         }
 
-        private void RedrawChunk(Chunk c)
+        private void RedrawChunk(Chunk chunk)
         {
-            DestroyImmediate(c.GetComponent<MeshFilter>());
-            DestroyImmediate(c.GetComponent<MeshRenderer>());
-            DestroyImmediate(c.GetComponent<Collider>());
-            c.CreateChunk(chunkDimensions, c.worldPosition, false);
+            DestroyImmediate(chunk.GetComponent<MeshFilter>());
+            DestroyImmediate(chunk.GetComponent<MeshRenderer>());
+            DestroyImmediate(chunk.GetComponent<Collider>());
+            chunk.CreateChunk(chunkDimensions, chunk.coordinates, false);
         }
 
         public void SaveWorld()
@@ -444,7 +445,7 @@ namespace VoxelWorld
 
         private IEnumerator LoadWorldFromFile()
         {
-            WorldData worldData = FileSaver.Load();
+            WorldData worldData = FileSaver.Load(this);
             if (worldData == null)
             {
                 StartCoroutine(BuildWorld());
@@ -475,25 +476,25 @@ namespace VoxelWorld
             int vIndex = 0;
             foreach (Vector3Int chunkPos in createdChunks)
             {
-                GameObject chunk = Instantiate(chunkPrefab);
-                chunk.name = $"Chunk_{chunkPos.x}_{chunkPos.y}_{chunkPos.z}";
-                Chunk c = chunk.GetComponent<Chunk>();
+                GameObject chunkGO = Instantiate(chunkPrefab);
+                chunkGO.name = $"Chunk_{chunkPos.x}_{chunkPos.y}_{chunkPos.z}";
+                Chunk chunk = chunkGO.GetComponent<Chunk>();
 
-                c.chunkData = new BlockType[blockCount];
-                c.healthData = new BlockType[blockCount];
+                chunk.chunkData = new BlockType[blockCount];
+                chunk.healthData = new BlockType[blockCount];
 
                 for (int i = 0; i < blockCount; i++)
                 {
-                    c.chunkData[i] = (BlockType)worldData.allChunkData[index];
-                    c.healthData[i] = BlockType.Nocrack;
+                    chunk.chunkData[i] = (BlockType)worldData.allChunkData[index];
+                    chunk.healthData[i] = BlockType.Nocrack;
                     index++;
                 }
 
-                c.CreateChunk(chunkDimensions, chunkPos, false);
-                chunks.Add(chunkPos, c);
-                RedrawChunk(c);
-                c.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[vIndex];
-                c.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[vIndex];
+                chunk.CreateChunk(chunkDimensions, chunkPos, false);
+                chunks.Add(chunkPos, chunk);
+                RedrawChunk(chunk);
+                chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[vIndex];
+                chunk.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[vIndex];
                 vIndex++;
                 loadingBar.value++;
                 yield return null;
@@ -509,13 +510,10 @@ namespace VoxelWorld
             StartCoroutine(UpdateWorld());
         }
 
-
-
         /// <summary>
         /// adds one chunk column every frame until the whole initial world is built
         /// starts monitoring coroutines after that
         /// </summary>
-        /// <returns></returns>
         private IEnumerator BuildWorld()
         {
             Debug.Log($"Initial World building started, Creating max " +
@@ -542,10 +540,9 @@ namespace VoxelWorld
 
             SpawnPlayer();
 
-            // StartCoroutine(BuildQueueProcessor());
-            // StartCoroutine(UpdateWorld());
-            //StartCoroutine(BuildExtraWorld());
-
+            StartCoroutine(BuildQueueProcessor());
+            StartCoroutine(UpdateWorld());
+            StartCoroutine(BuildExtraWorld());
         }
 
         /// <summary>
