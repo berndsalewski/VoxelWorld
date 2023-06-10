@@ -108,13 +108,16 @@ namespace VoxelWorld
         // System.Tuple<Vector3Int, Vector3Int> can be written as (Vector3Int, Vector3Int) since C#7
         // computes chunk and block coordinates for a given point in the world
         // currently only works if blocks have a size of 1 and are aligned to the unity grid
-        public (Vector3Int, Vector3Int) FromWorldPosToCoordinates(Vector3 worldPos)
+        public static (Vector3Int, Vector3Int) FromWorldPosToCoordinates(Vector3 worldPos)
         {
+            //TODO needs fix for negative positions, write Test case
+            // cast to int will change -0.1 to 0 instead of -1
+
             //Debug.Log($"World:{worldPos}");
             Vector3Int chunkCoordinates = new Vector3Int();
-            chunkCoordinates.x = (int)((worldPos.x /*+ 0.5f*/) / chunkDimensions.x) * chunkDimensions.x;
-            chunkCoordinates.y = (int)((worldPos.y /*+ 0.5f*/) / chunkDimensions.y) * chunkDimensions.y;
-            chunkCoordinates.z = (int)((worldPos.z /*+ 0.5f*/) / chunkDimensions.z) * chunkDimensions.z;
+            chunkCoordinates.x = Mathf.FloorToInt(worldPos.x / chunkDimensions.x) * chunkDimensions.x;
+            chunkCoordinates.y = Mathf.FloorToInt(worldPos.y / chunkDimensions.y) * chunkDimensions.y;
+            chunkCoordinates.z = Mathf.FloorToInt(worldPos.z / chunkDimensions.z) * chunkDimensions.z;
 
             Vector3Int blockCoordinates = new Vector3Int();
             blockCoordinates.x = Mathf.FloorToInt(worldPos.x) - chunkCoordinates.x;
@@ -543,7 +546,7 @@ namespace VoxelWorld
 
             StartCoroutine(BuildQueueProcessor());
             StartCoroutine(UpdateWorld());
-            StartCoroutine(BuildExtraWorld());
+            //StartCoroutine(BuildExtraWorld());
         }
 
         /// <summary>
@@ -667,7 +670,16 @@ namespace VoxelWorld
             {
                 (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToCoordinates(selectedBlockWorldPosition);
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
-                BlockType blockType = chunks[chunkPosition].chunkData[blockIndex];
+                Chunk chunk = chunks[chunkPosition];
+                BlockType blockType = BlockType.Redstone;
+                try
+                {
+                    blockType = chunk.chunkData[blockIndex];//TODO fix array index error
+                }
+                catch (IndexOutOfRangeException e)
+                {
+                    Debug.Log($"{e.Message}");
+                }
 
                 GUIStyle boxStyle = new GUIStyle();
                 boxStyle.alignment = TextAnchor.UpperLeft;

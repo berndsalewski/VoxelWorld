@@ -450,9 +450,13 @@ namespace VoxelWorld
                 float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, World.treeSettings.octaves, World.treeSettings.scale,
                     World.treeSettings.heightScale, World.treeSettings.heightOffset);
 
-                if (yPos > surfaceHeight)
+                if (yPos == 0)
                 {
-                    int waterLevel = 20;
+                    cData[i] = BlockType.Bedrock;
+                }
+                else if (yPos > surfaceHeight)
+                {
+                    int waterLevel = 21;
                     if (yPos < waterLevel)
                     {
                         cData[i] = BlockType.Water;
@@ -461,10 +465,6 @@ namespace VoxelWorld
                     {
                         cData[i] = BlockType.Air;
                     }
-                }
-                else if (yPos == 0)
-                {
-                    cData[i] = BlockType.Bedrock;
                 }
                 else if (yPos == surfaceHeight)
                 {
