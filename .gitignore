@@ -75,3 +75,6 @@ crashlytics-build.properties
 # MacCrap
 .DS_Store
 todo.txt
+
+# own plugins
+Assets/ConsolePro*
