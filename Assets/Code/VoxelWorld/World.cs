@@ -13,15 +13,21 @@ namespace VoxelWorld
     public class World : MonoBehaviour
     {
         //TODO configuration in a scriptable object
-        [Header("World Configuration")]//TODO configuration in a scriptable object
-        // these values mean number of chunk (columns)
+        [Header("World Configuration")]
+
+        [Tooltip("how many chunks does the world consist of initially")]
         public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);
         public Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
 
-        // block count in a single chunk
+        [Tooltip("if a block is above the surface and below this value it will be water, otherwise air")]
+        public int waterLevel;
+
         [Tooltip("radius around the player in which new chunk columns are added, value is number of chunks")]
         public int chunkColumnDrawRadius = 3;
 
+        /// <summary>
+        /// block count in a single chunk
+        /// </summary>
         public static Vector3Int chunkDimensions = new Vector3Int(10, 10, 10);
 
         public bool loadFromFile = false;
@@ -442,7 +448,7 @@ namespace VoxelWorld
             DestroyImmediate(chunk.GetComponent<MeshFilter>());
             DestroyImmediate(chunk.GetComponent<MeshRenderer>());
             DestroyImmediate(chunk.GetComponent<Collider>());
-            chunk.CreateChunk(chunkDimensions, chunk.coordinates, false);
+            chunk.CreateChunk(chunkDimensions, chunk.coordinates, waterLevel, false);
         }
 
         public void SaveWorld()
@@ -497,7 +503,7 @@ namespace VoxelWorld
                     index++;
                 }
 
-                chunk.CreateChunk(chunkDimensions, chunkPos, false);
+                chunk.CreateChunk(chunkDimensions, chunkPos, waterLevel, false);
                 chunks.Add(chunkPos, chunk);
                 RedrawChunk(chunk);
                 chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[vIndex];
@@ -539,7 +545,7 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// BuildCoordinator monitors the build queue for tasks and runs them one after the other
+        /// BuildCoordinator monitors the build queue for tasks and runs them one after the other, one job per frame
         /// </summary>
         private IEnumerator BuildQueueProcessor()
         {
@@ -662,14 +668,7 @@ namespace VoxelWorld
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
                 Chunk chunk = chunks[chunkPosition];
                 BlockType blockType = BlockType.Redstone;
-                try
-                {
-                    blockType = chunk.chunkData[blockIndex];//TODO fix array index error
-                }
-                catch (IndexOutOfRangeException e)
-                {
-                    Debug.Log($"{e.Message}");
-                }
+                blockType = chunk.chunkData[blockIndex];
 
                 GUIStyle boxStyle = new GUIStyle();
                 boxStyle.alignment = TextAnchor.UpperLeft;

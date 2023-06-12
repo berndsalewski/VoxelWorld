@@ -1255,8 +1255,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.3796759, y: 0.26652715, z: -0.11520442, w: 0.8783721}
-  m_LocalPosition: {x: -3.112902, y: 104.59301, z: -35.90193}
+  m_LocalRotation: {x: 0.32871008, y: -0.23047101, z: 0.083058506, w: 0.91210425}
+  m_LocalPosition: {x: 43.134666, y: 57.690617, z: -64.498436}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2445,8 +2445,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d908e043bdb84ffeb5e5769486ab324, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  worldDimensions: {x: 1, y: 3, z: 1}
-  extraWorldDimensions: {x: 2, y: 2, z: 2}
+  worldDimensions: {x: 7, y: 3, z: 7}
+  extraWorldDimensions: {x: 0, y: 0, z: 0}
+  waterLevel: 20
+  chunkColumnDrawRadius: 3
   loadFromFile: 0
   chunkPrefab: {fileID: 7167185840046066545, guid: 5eae10abd5016435394c58d8be4609f6, type: 3}
   mainCamera: {fileID: 963194225}

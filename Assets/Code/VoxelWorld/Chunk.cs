@@ -75,7 +75,7 @@ namespace VoxelWorld
         /// <summary>
         /// generates the data structure which defines which block is what type
         /// </summary>
-        private void GenerateChunkData()
+        private void GenerateChunkData(int waterLevel)
         {
             int blockCount = xBlockCount * yBlockCount * zBlockCount;
             chunkData = new BlockType[blockCount];
@@ -101,7 +101,8 @@ namespace VoxelWorld
                 width = xBlockCount,
                 height = yBlockCount,
                 location = coordinates,
-                randoms = RandomArray
+                randoms = RandomArray,
+                waterLevel = waterLevel
             };
 
             jobHandle = calculateBlockTypes.Schedule(chunkData.Length, 64);
@@ -168,12 +169,12 @@ namespace VoxelWorld
         /// <summary>
         /// creates a chunk of blocks, creates the actual geometry
         /// </summary>
-        public void CreateChunk(Vector3Int dimensions, Vector3Int coordinates, bool regenerateChunkData = true)
+        public void CreateChunk(Vector3Int chunkDimensions, Vector3Int chunkCoordinates, int waterLevel, bool regenerateChunkData = true)
         {
-            this.coordinates = coordinates;
-            xBlockCount = dimensions.x;
-            yBlockCount = dimensions.y;
-            zBlockCount = dimensions.z;
+            coordinates = chunkCoordinates;
+            xBlockCount = chunkDimensions.x;
+            yBlockCount = chunkDimensions.y;
+            zBlockCount = chunkDimensions.z;
             
             MeshFilter meshFilterSolid;
             MeshRenderer meshRendererSolid;
@@ -216,7 +217,7 @@ namespace VoxelWorld
 
             if (regenerateChunkData)
             {
-                GenerateChunkData();
+                GenerateChunkData(waterLevel);
             }
 
             for (int pass = 0; pass < 2; pass++)
@@ -401,6 +402,7 @@ namespace VoxelWorld
             public int height;
             public Vector3 location;
             public NativeArray<Unity.Mathematics.Random> randoms;
+            public int waterLevel;
 
             public void Execute(int i)
             {
@@ -456,7 +458,6 @@ namespace VoxelWorld
                 }
                 else if (yPos > surfaceHeight)
                 {
-                    int waterLevel = 21;
                     if (yPos < waterLevel)
                     {
                         cData[i] = BlockType.Water;
