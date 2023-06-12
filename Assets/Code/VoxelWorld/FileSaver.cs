@@ -9,7 +9,10 @@ namespace VoxelWorld
     [Serializable]
     public class WorldData
     {
-        public int[] chunkCheckerValues;
+        /// <summary>
+        /// stores serialized coordinates of all created chunks
+        /// </summary>
+        public int[] createdChunksCoordinates;
         public int[] chunkColumnValues;
         public int[] allChunkData;
         public bool[] chunkVisibility;
@@ -20,21 +23,21 @@ namespace VoxelWorld
 
         public WorldData() { }
 
-        public WorldData(HashSet<Vector3Int> chunkChecker, HashSet<Vector2Int> chunkColumns, Dictionary<Vector3Int, Chunk> chunks, Vector3 fpcPos)
+        public WorldData(HashSet<Vector3Int> createdChunks, HashSet<Vector2Int> createdChunkColumns, Dictionary<Vector3Int, Chunk> chunks, Vector3 fpcPos)
         {
-            chunkCheckerValues = new int[chunkChecker.Count * 3];
+            createdChunksCoordinates = new int[createdChunks.Count * 3];
             int i = 0;
-            foreach (Vector3Int chunkPosition in chunkChecker)
+            foreach (Vector3Int chunkPosition in createdChunks)
             {
-                chunkCheckerValues[i] = chunkPosition.x;
-                chunkCheckerValues[i + 1] = chunkPosition.y;
-                chunkCheckerValues[i + 2] = chunkPosition.z;
+                createdChunksCoordinates[i] = chunkPosition.x;
+                createdChunksCoordinates[i + 1] = chunkPosition.y;
+                createdChunksCoordinates[i + 2] = chunkPosition.z;
                 i += 3;
             }
 
-            chunkColumnValues = new int[chunkColumns.Count * 2];
+            chunkColumnValues = new int[createdChunkColumns.Count * 2];
             i = 0;
-            foreach (Vector3Int chunkColumnPosition in chunkColumns)
+            foreach (Vector3Int chunkColumnPosition in createdChunkColumns)
             {
                 chunkColumnValues[i] = chunkColumnPosition.x;
                 chunkColumnValues[i + 1] = chunkColumnPosition.y;

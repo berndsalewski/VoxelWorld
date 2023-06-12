@@ -467,12 +467,12 @@ namespace VoxelWorld
 
             createdChunks.Clear();
             // populate runtime data structures with loaded data
-            for (int i = 0; i < worldData.chunkCheckerValues.Length; i += 3)
+            for (int i = 0; i < worldData.createdChunksCoordinates.Length; i += 3)
             {
                 createdChunks.Add(new Vector3Int(
-                    worldData.chunkCheckerValues[i],
-                    worldData.chunkCheckerValues[i + 1],
-                    worldData.chunkCheckerValues[i + 2]));
+                    worldData.createdChunksCoordinates[i],
+                    worldData.createdChunksCoordinates[i + 1],
+                    worldData.createdChunksCoordinates[i + 2]));
             }
 
             createdChunkColumns.Clear();
