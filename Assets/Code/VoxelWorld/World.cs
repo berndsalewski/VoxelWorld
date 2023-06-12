@@ -3,10 +3,10 @@ using UnityEngine.UI;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace VoxelWorld
 {
-
     /// <summary>
     /// hold the data structures for the world and provides access to world data
     /// </summary>
@@ -19,6 +19,9 @@ namespace VoxelWorld
         public Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
 
         // block count in a single chunk
+        [Tooltip("radius around the player in which new chunk columns are added, value is number of chunks")]
+        public int chunkColumnDrawRadius = 3;
+
         public static Vector3Int chunkDimensions = new Vector3Int(10, 10, 10);
 
         public bool loadFromFile = false;
@@ -59,13 +62,10 @@ namespace VoxelWorld
         public Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
 
         // at which player position did we last trigger the addition of new chunks
-        Vector3Int lastPlayerPositionTriggeringNewChunks;
+        Vector3 lastPlayerPositionTriggeringNewChunks;
 
         // holds coroutines for building chunks and hiding chunk columns
         Queue<IEnumerator> buildQueue = new Queue<IEnumerator>();
-
-        // drawRadius radius around the player in which new chunk columns are added, value is number of chunks
-        private int chunkColumnDrawRadius = 3;
 
         private WaitForSeconds waitFor500Ms = new WaitForSeconds(0.5f);
         private WaitForSeconds waitFor3Seconds = new WaitForSeconds(3);
@@ -73,6 +73,11 @@ namespace VoxelWorld
 
         private BlockType buildBlockType = BlockType.Dirt;
         private Vector3 moveToCenterVector = new Vector3(0.5f, 0.5f, 0.5f);
+
+        private System.Diagnostics.Stopwatch stopwatchBuildWorld = new System.Diagnostics.Stopwatch();
+        private int createdCompletelyNewChunksCount;
+        private System.Diagnostics.Stopwatch stopwatchChunkGeneration = new System.Diagnostics.Stopwatch();
+        private List<long> chunkGenerationTimes = new List<long>();
 
         // Use this for initialization
         private void Start()
@@ -84,14 +89,13 @@ namespace VoxelWorld
             caveSettings = new Perlin3DSettings(caves.heightScale, caves.scale, caves.octaves, caves.heightOffset, caves.DrawCutOff);
             treeSettings = new Perlin3DSettings(trees.heightScale, trees.scale, trees.octaves, trees.heightOffset, trees.DrawCutOff);
 
-
             if (loadFromFile)
             {
                 StartCoroutine(LoadWorldFromFile());
             }
             else
             {
-                StartCoroutine(BuildWorld());
+                StartCoroutine(BuildNewWorld());
             }
         }
 
@@ -110,10 +114,6 @@ namespace VoxelWorld
         // currently only works if blocks have a size of 1 and are aligned to the unity grid
         public static (Vector3Int, Vector3Int) FromWorldPosToCoordinates(Vector3 worldPos)
         {
-            //TODO needs fix for negative positions, write Test case
-            // cast to int will change -0.1 to 0 instead of -1
-
-            //Debug.Log($"World:{worldPos}");
             Vector3Int chunkCoordinates = new Vector3Int();
             chunkCoordinates.x = Mathf.FloorToInt(worldPos.x / chunkDimensions.x) * chunkDimensions.x;
             chunkCoordinates.y = Mathf.FloorToInt(worldPos.y / chunkDimensions.y) * chunkDimensions.y;
@@ -124,7 +124,6 @@ namespace VoxelWorld
             blockCoordinates.y = Mathf.FloorToInt(worldPos.y) - chunkCoordinates.y;
             blockCoordinates.z = Mathf.FloorToInt(worldPos.z) - chunkCoordinates.z;
 
-            //Debug.Log($"Chunk {chunkCoordinates} Block {blockCoordinates}");
             return (chunkCoordinates, blockCoordinates);
         }
 
@@ -266,30 +265,35 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// creates a new column of chunks
+        /// creates a new column of chunks at the given coordinate, which corresponds with world position currently
+        /// skips creation if a chunk already exist at the position but will set its visibility to <paramref name="meshEnabled"/>
         /// </summary>
         /// <param name="worldX">world x</param>
         /// <param name="worldZ">world z</param>
         /// <param name="meshEnabled"> set the mesh visible after it has been created</param>
         private void BuildChunkColumn(int worldX, int worldZ, bool meshEnabled = true)
         {
-            Debug.Log($"Show Chunk Column {worldX}:{worldZ}");
+            Debug.Log($"Activate Chunk Column at {worldX}:{worldZ}");
 
             for (int gridY = 0; gridY < worldDimensions.y; gridY++)
             {
-                Vector3Int coordinates = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
-                if (!createdChunks.Contains(coordinates))
+                Vector3Int chunkCoordinates = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
+                if (!createdChunks.Contains(chunkCoordinates))
                 {
+                    stopwatchChunkGeneration.Start();
                     GameObject chunkGO = Instantiate(chunkPrefab);
                     Chunk chunk = chunkGO.GetComponent<Chunk>();
-                    chunk.CreateChunk(chunkDimensions, coordinates);
-                    createdChunks.Add(coordinates);
-                    chunks.Add(coordinates, chunk);
-                    Debug.Log($"Chunk created at {coordinates}");
+                    chunk.CreateChunk(chunkDimensions, chunkCoordinates, waterLevel);
+                    createdChunks.Add(chunkCoordinates);
+                    chunks.Add(chunkCoordinates, chunk);
+                    //Debug.Log($"Chunk created at {chunkCoordinates}");
+                    createdCompletelyNewChunksCount++;
+                    chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
+                    stopwatchChunkGeneration.Reset();
                 }
 
-                chunks[coordinates].meshRendererSolidBlocks.enabled = meshEnabled;
-                chunks[coordinates].meshRendererFluidBlocks.enabled = meshEnabled;
+                chunks[chunkCoordinates].meshRendererSolidBlocks.enabled = meshEnabled;
+                chunks[chunkCoordinates].meshRendererFluidBlocks.enabled = meshEnabled;
 
             }
 
@@ -297,24 +301,23 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// spawns the player in the initial center of the world in the xz plane
+        /// spawns the player in the initial center of the world (0,0) in the xz plane
         /// </summary>
         private void SpawnPlayer()
         {
-            mainCamera.SetActive(false);
-            float posX = worldDimensions.x * chunkDimensions.x * 0.5f;
-            float posZ = worldDimensions.z * chunkDimensions.z * 0.5f;
+            Debug.Log("Spawn Player");
+
+            float posX = 0;
+            float posZ = 0;
 
             // get the height of the surface at the spawn position
             float posY = MeshUtils.fBM(posX, posZ, surfaceSettings.octaves, surfaceSettings.scale, surfaceSettings.heightScale, surfaceSettings.heightOffset);
 
             float verticalOffset = 3;
             firstPersonController.transform.position = new Vector3(posX, posY + verticalOffset, posZ);
+            lastPlayerPositionTriggeringNewChunks = firstPersonController.transform.position;
+            mainCamera.SetActive(false);
             firstPersonController.SetActive(true);
-
-            lastPlayerPositionTriggeringNewChunks = Vector3Int.CeilToInt(firstPersonController.transform.position);
-
-            Debug.Log($"Player was spawned");
         }
 
         private void InitLoadingBar(float maxValue)
@@ -452,7 +455,7 @@ namespace VoxelWorld
             WorldData worldData = FileSaver.Load(this);
             if (worldData == null)
             {
-                StartCoroutine(BuildWorld());
+                StartCoroutine(BuildNewWorld());
                 yield break;
             }
 
@@ -511,41 +514,27 @@ namespace VoxelWorld
             loadingBar.gameObject.SetActive(false);
 
             StartCoroutine(BuildQueueProcessor());
-            StartCoroutine(UpdateWorld());
+            StartCoroutine(UpdateWorldMonitor());
         }
 
         /// <summary>
         /// adds one chunk column every frame until the whole initial world is built
-        /// starts monitoring coroutines after that
+        /// starts coroutines for world updating when player moves after that
         /// </summary>
-        private IEnumerator BuildWorld()
+        private IEnumerator BuildNewWorld()
         {
-            Debug.Log($"Initial World building started, Creating max " +
-                $"{worldDimensions.x * chunkDimensions.x} * " +
-                $"{worldDimensions.y * chunkDimensions.y} * " +
-                $"{worldDimensions.z * chunkDimensions.z} chunks");
+            Debug.Log($"#World# Initial World building started");
 
             InitLoadingBar(worldDimensions.x * worldDimensions.z);
 
-            for (int z = 0; z < worldDimensions.z; z++)
-            {
-                for (int x = 0; x < worldDimensions.x; x++)
-                {
-                    BuildChunkColumn(x * chunkDimensions.x, z * chunkDimensions.z);
-                    ;
-                    loadingBar.value += 1;
-                    yield return null;
-                }
-            }
-
-            Debug.Log($"Initial World Building finished");
+            yield return StartCoroutine(BuildChunkColumns(new Vector3(0, 0, 0), chunkColumnDrawRadius * chunkDimensions.x));
 
             loadingBar.gameObject.SetActive(false);
 
             SpawnPlayer();
 
             StartCoroutine(BuildQueueProcessor());
-            StartCoroutine(UpdateWorld());
+            StartCoroutine(UpdateWorldMonitor());
             //StartCoroutine(BuildExtraWorld());
         }
 
@@ -567,23 +556,24 @@ namespace VoxelWorld
             }
         }
 
-        // checks every 500ms if the player has moved far enough to trigger new chunk building
-        private IEnumerator UpdateWorld()
+        // checks every 500ms if the player has moved far enough to trigger the creation of new chunks
+        private IEnumerator UpdateWorldMonitor()
         {
             Debug.Log("Start monitoring player position");
             while (true)
             {
-                //Debug.Log("Check Player Position");
                 //TODO currently only works if chunk dimensions are uniform
-                if ((lastPlayerPositionTriggeringNewChunks - firstPersonController.transform.position).magnitude > chunkDimensions.x)
+                int minWalkDistance = chunkDimensions.x;
+                float walkedDistance = (lastPlayerPositionTriggeringNewChunks - firstPersonController.transform.position).magnitude;
+                if (walkedDistance > minWalkDistance)
                 {
-                    //TODO why always rounding up?
-                    lastPlayerPositionTriggeringNewChunks = Vector3Int.CeilToInt(firstPersonController.transform.position);
-                    // positions values are always the beginning of a chunk: 7->0,15->10,29->20, etc.why?
-                    int playerColumnX = (int)(firstPersonController.transform.position.x / chunkDimensions.x) * chunkDimensions.x;
-                    int playerColumnZ = (int)(firstPersonController.transform.position.z / chunkDimensions.z) * chunkDimensions.z;
-                    buildQueue.Enqueue(BuildWorldRecursively(playerColumnX, playerColumnZ, chunkColumnDrawRadius));
-                    buildQueue.Enqueue(HideColumns(new Vector2Int(playerColumnX, playerColumnZ)));
+                    lastPlayerPositionTriggeringNewChunks = firstPersonController.transform.position;
+
+                    (Vector3Int chunkCoordinate, Vector3Int blockCoordinate) = FromWorldPosToCoordinates(firstPersonController.transform.position);
+                    Vector2Int chunkColumnCoordinates = new Vector2Int(chunkCoordinate.x, chunkCoordinate.z);
+                    buildQueue.Enqueue(HideChunkColumns(chunkColumnCoordinates));
+
+                    buildQueue.Enqueue(BuildChunkColumns(firstPersonController.transform.position, chunkColumnDrawRadius * chunkDimensions.x));
                 }
                 yield return waitFor500Ms;
             }
@@ -607,15 +597,15 @@ namespace VoxelWorld
         /// <summary>
         /// hides all chunk columns which are beyond the draw radius
         /// </summary>
-        /// <param name="playerLocation" x and z world coordinates of the current player location
-        private IEnumerator HideColumns(Vector2Int playerLocation)
+        /// <param name="currentChunkColumnCoordinate">the chunk column coordinate of the current player position</param> 
+        private IEnumerator HideChunkColumns(Vector2Int currentChunkColumnCoordinate)
         {
-            Debug.Log($"Hide columns around {playerLocation.x}:{playerLocation.y}");
+            Debug.Log($"Hide columns around {currentChunkColumnCoordinate.x}:{currentChunkColumnCoordinate.y}");
 
             //TODO Improvement: we don't need to iterate all columns, only the visible ones
             foreach (Vector2Int column in createdChunkColumns)
             {
-                if ((column - playerLocation).magnitude >= chunkColumnDrawRadius * chunkDimensions.x)
+                if ((column - currentChunkColumnCoordinate).magnitude > chunkColumnDrawRadius * chunkDimensions.x)
                 {
                     HideChunkColumn(column.x, column.y);
                 }
@@ -623,39 +613,39 @@ namespace VoxelWorld
             yield return null;
         }
 
-        //TODO: alternative without recursion
-        /// <summary>
-        /// builds new chunk columns around a players position
-        /// </summary>
-        /// <param name="worldX"></param>
-        /// <param name="worldZ"></param>
-        /// <param name="buildRadius"> grid coordinates</param>
-        /// <returns></returns>
-        private IEnumerator BuildWorldRecursively(int worldX, int worldZ, int buildRadius)
+        private IEnumerator BuildChunkColumns(Vector3 playerPosition, int buildRadius)
         {
-            Debug.Log($"Build Recursive World at {worldX}:{worldZ} with radius {buildRadius}");
+            stopwatchBuildWorld.Start();
 
-            int nextRadius = buildRadius - 1;
-            if (buildRadius <= 0)
+            (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = FromWorldPosToCoordinates(playerPosition);
+
+            int startX = chunkCoordinates.x - buildRadius;
+            int stopX = chunkCoordinates.x + buildRadius;
+            int startZ = chunkCoordinates.z + buildRadius;
+            int stopZ = chunkCoordinates.z - buildRadius;
+            for (int z = startZ; z >= stopZ; z -= 10)
             {
-                yield break;
+                for (int x = startX; x <= stopX; x += 10)
+                {
+                    Vector3Int possibleNewChunkCoordinate = new Vector3Int(x, chunkCoordinates.y, z);
+                    if (Vector3Int.Distance(possibleNewChunkCoordinate, chunkCoordinates) <= buildRadius)
+                    {
+                        BuildChunkColumn(x, z);
+                        yield return null;
+                    }
+                }
             }
 
-            BuildChunkColumn(worldX, worldZ + chunkDimensions.z);
-            buildQueue.Enqueue(BuildWorldRecursively(worldX, worldZ + chunkDimensions.z, nextRadius));
-            yield return null;
 
-            BuildChunkColumn(worldX, worldZ - chunkDimensions.z);
-            buildQueue.Enqueue(BuildWorldRecursively(worldX, worldZ - chunkDimensions.z, nextRadius));
-            yield return null;
-
-            BuildChunkColumn(worldX + chunkDimensions.x, worldZ);
-            buildQueue.Enqueue(BuildWorldRecursively(worldX + chunkDimensions.x, worldZ, nextRadius));
-            yield return null;
-
-            BuildChunkColumn(worldX - chunkDimensions.x, worldZ);
-            buildQueue.Enqueue(BuildWorldRecursively(worldX - chunkDimensions.x, worldZ, nextRadius));
-            yield return null;
+            // all debug related
+            Debug.Log($"Building of chunk columns finished after {stopwatchBuildWorld.ElapsedMilliseconds}ms. {createdCompletelyNewChunksCount} Chunks were created.");
+            stopwatchBuildWorld.Reset();
+            if (chunkGenerationTimes.Count > 0)
+            {
+                Debug.Log($"avg chunk generation time: {chunkGenerationTimes.Average()}");
+            }
+            chunkGenerationTimes.Clear();
+            createdCompletelyNewChunksCount = 0;
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
