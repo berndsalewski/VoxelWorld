@@ -78,3 +78,7 @@ todo.txt
 
 # own plugins
 Assets/ConsolePro*
+
+# temp stuff
+Assets/Scenes/TestScenarios.unity*
+Assets/Code/VoxelWorld/TestScenarios.cs
