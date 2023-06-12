@@ -313,8 +313,8 @@ namespace VoxelWorld
         {
             Debug.Log("Spawn Player");
 
-            float posX = 0;
-            float posZ = 0;
+            float posX = chunkDimensions.x * 0.5f;
+            float posZ = chunkDimensions.z * 0.5f;
 
             // get the height of the surface at the spawn position
             float posY = MeshUtils.fBM(posX, posZ, surfaceSettings.octaves, surfaceSettings.scale, surfaceSettings.heightScale, surfaceSettings.heightOffset);
