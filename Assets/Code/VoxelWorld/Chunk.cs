@@ -73,7 +73,7 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// generates the data structure which defines which block is what type
+        /// generates the initial data which defines which block is what
         /// </summary>
         private void GenerateChunkData(int waterLevel)
         {
@@ -169,7 +169,7 @@ namespace VoxelWorld
         /// <summary>
         /// creates a chunk of blocks, creates the actual geometry
         /// </summary>
-        public void CreateChunk(Vector3Int chunkDimensions, Vector3Int chunkCoordinates, int waterLevel, bool regenerateChunkData = true)
+        public void CreateMeshes(Vector3Int chunkDimensions, Vector3Int chunkCoordinates, int waterLevel, bool generateChunkData = true)
         {
             coordinates = chunkCoordinates;
             xBlockCount = chunkDimensions.x;
@@ -180,7 +180,6 @@ namespace VoxelWorld
             MeshRenderer meshRendererSolid;
             MeshFilter meshFilterFluid;
             MeshRenderer meshRendererFluid;
-
 
             if (solidMesh == null)
             {
@@ -215,7 +214,7 @@ namespace VoxelWorld
 
             blocks = new Block[xBlockCount, yBlockCount, zBlockCount];
 
-            if (regenerateChunkData)
+            if (generateChunkData)
             {
                 GenerateChunkData(waterLevel);
             }

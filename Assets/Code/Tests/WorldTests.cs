@@ -32,7 +32,7 @@ public class WorldTests
         Vector3Int expectedChunkCoordinates,
         Vector3Int expectedBlockCoordinates)
     {
-        (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = World.FromWorldPosToCoordinates(toBeTested);
+        (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = WorldUtils.FromWorldPosToCoordinates(toBeTested);
 
         Assert.That(chunkCoordinates, Is.EqualTo(expectedChunkCoordinates).Using(Vector3EqualityComparer.Instance));
         Assert.That(blockCoordinates, Is.EqualTo(expectedBlockCoordinates).Using(Vector3EqualityComparer.Instance));

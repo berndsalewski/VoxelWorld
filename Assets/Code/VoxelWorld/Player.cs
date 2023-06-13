@@ -10,6 +10,13 @@ namespace VoxelWorld
     public class Player : MonoBehaviour
     {
         public GameObject highlightBlock;
+        public GameObject firstPersonController;
+
+        public Vector3 position
+        {
+            get { return firstPersonController.transform.position; }
+            set { firstPersonController.transform.position = value; }
+        }
 
         [SerializeField]
         private World world;
@@ -23,6 +30,11 @@ namespace VoxelWorld
         public void SetBuildType(int type)
         {
             buildBlockType = (BlockType)type;
+        }
+
+        public void SetActive(bool isActive)
+        {
+            firstPersonController.SetActive(isActive);
         }
 
         private void Update()
@@ -78,7 +90,7 @@ namespace VoxelWorld
                 hitBlock = hit.point + hit.normal * Block.HALF_BLOCK_SIZE;
             }
 
-            (Vector3Int chunkPosition, Vector3Int blockPosition) = World.FromWorldPosToCoordinates(hitBlock);
+            (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(hitBlock);
             Chunk thisChunk = world.chunks[chunkPosition];
             int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
 
@@ -96,7 +108,7 @@ namespace VoxelWorld
 
                         // takes care of dropping blocks
                         Vector3Int aboveBlock = blockPosition + Vector3Int.up;
-                        (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = World.AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
+                        (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
                         int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                         StartCoroutine(world.Drop(world.chunks[adjustedChunkPos], aboveBlockIndex));
                     }
@@ -116,6 +128,32 @@ namespace VoxelWorld
             world.RedrawChunk(thisChunk);
         }
 
+        /// <summary>
+        /// spawns the player in the initial center of the world (0,0) in the xz plane
+        /// </summary>
+        public void Spawn()
+        {
+            Debug.Log("Spawn Player");
+
+            float posX = World.chunkDimensions.x * 0.5f;
+            float posZ = World.chunkDimensions.z * 0.5f;
+
+            // get the height of the surface at the spawn position
+            float posY = MeshUtils.fBM(
+                posX,
+                posZ,
+                World.surfaceSettings.octaves,
+                World.surfaceSettings.scale,
+                World.surfaceSettings.heightScale,
+                World.surfaceSettings.heightOffset);
+
+            float verticalOffset = 3;
+            firstPersonController.transform.position = new Vector3(posX, posY + verticalOffset, posZ);
+            world.lastPlayerPositionTriggeringNewChunks = firstPersonController.transform.position;
+            world.mainCamera.SetActive(false);
+            firstPersonController.SetActive(true);
+        }
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         private Vector3 selectedBlockWorldPosition;
         private Vector3 rayCastHitPoint;
@@ -126,7 +164,7 @@ namespace VoxelWorld
         {
             if (didRaycastHitACollider)
             {
-                (Vector3Int chunkPosition, Vector3Int blockPosition) = World.FromWorldPosToCoordinates(selectedBlockWorldPosition);
+                (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
                 Chunk chunk = world.chunks[chunkPosition];
                 BlockType blockType = BlockType.Redstone;

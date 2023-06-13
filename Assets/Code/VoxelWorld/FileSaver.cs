@@ -82,7 +82,7 @@ namespace VoxelWorld
                 + worldDimensions.z + ".dat";
         }
 
-        public static void Save(World world)
+        public static void Save(World world, Player player)
         {
             string fileName = BuildFileName(world.worldDimensions);
             if (!File.Exists(fileName))
@@ -91,7 +91,7 @@ namespace VoxelWorld
             }
             BinaryFormatter bf = new BinaryFormatter();
             FileStream file = File.Open(fileName, FileMode.OpenOrCreate);
-            worldData = new WorldData(world.createdChunks, world.createdChunkColumns, world.chunks, world.firstPersonController.transform.position);
+            worldData = new WorldData(world.createdChunks, world.createdChunkColumns, world.chunks, player.position);
             bf.Serialize(file, worldData);
             file.Close();
             Debug.Log($"Saving World to File: {fileName}");
