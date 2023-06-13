@@ -169,7 +169,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   highlightBlock: {fileID: 1168590717}
-  world: {fileID: 1461771032}
+  firstPersonController: {fileID: 233639482}
+  worldBuilder: {fileID: 1461771032}
+  worldUpdater: {fileID: 1461771034}
 --- !u!1 &182683331
 GameObject:
   m_ObjectHideFlags: 0
@@ -2478,6 +2480,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1461771033}
   - component: {fileID: 1461771032}
+  - component: {fileID: 1461771034}
   m_Layer: 0
   m_Name: World
   m_TagString: Untagged
@@ -2504,7 +2507,6 @@ MonoBehaviour:
   loadFromFile: 0
   chunkPrefab: {fileID: 7167185840046066545, guid: 5eae10abd5016435394c58d8be4609f6, type: 3}
   mainCamera: {fileID: 963194225}
-  firstPersonController: {fileID: 233639482}
   loadingBar: {fileID: 530713735}
   surface: {fileID: 1065717134}
   stone: {fileID: 333466134}
@@ -2513,6 +2515,7 @@ MonoBehaviour:
   caves: {fileID: 1256400402102580266, guid: 1eba3ec731f094983bbd9dad0f750ffe, type: 3}
   trees: {fileID: 1256400402102580266, guid: 229ed7e63bea548d8a38dda33b5a5bd4, type: 3}
   player: {fileID: 76540823}
+  worldUpdater: {fileID: 1461771034}
 --- !u!4 &1461771033
 Transform:
   m_ObjectHideFlags: 0
@@ -2529,6 +2532,21 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1461771034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1461771031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68f6aaee651af4db2aad857e634f61c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lastPlayerPositionTriggeringNewChunks: {x: 0, y: 0, z: 0}
+  worldBuilder: {fileID: 1461771032}
+  player: {fileID: 76540823}
 --- !u!1 &1535035488
 GameObject:
   m_ObjectHideFlags: 0

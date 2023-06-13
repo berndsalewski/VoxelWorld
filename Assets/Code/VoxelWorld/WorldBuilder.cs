@@ -8,15 +8,15 @@ using System.Linq;
 namespace VoxelWorld
 {
     /// <summary>
-    /// hold the data structures for the world and provides access to world data
+    /// generates the world, holds some world related data structures
     /// </summary>
-    public class World : MonoBehaviour
+    public class WorldBuilder : MonoBehaviour
     {
         //TODO configuration in a scriptable object
         [Header("World Configuration")]
 
         [Tooltip("how many chunks does the world consist of initially")]
-        public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);
+        public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);//TODO longer needed? for what?
         public Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
 
         [Tooltip("if a block is above the surface and below this value it will be water, otherwise air")]
@@ -55,7 +55,10 @@ namespace VoxelWorld
         public static Perlin3DSettings treeSettings;
         public Perlin3DGrapher trees;
 
-        public Player player;
+        [SerializeField]
+        private Player player;
+        [SerializeField]
+        private WorldUpdater worldUpdater;
 
         /// keeps track of which chunks have been created already
         public HashSet<Vector3Int> createdChunks = new HashSet<Vector3Int>();
@@ -65,18 +68,6 @@ namespace VoxelWorld
 
         /// lookup for all created chunks
         public Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
-
-        // at which player position did we last trigger the addition of new chunks
-        public Vector3 lastPlayerPositionTriggeringNewChunks;
-
-        // holds coroutines for building chunks and hiding chunk columns
-        Queue<IEnumerator> buildQueue = new Queue<IEnumerator>();
-
-        private WaitForSeconds waitFor500Ms = new WaitForSeconds(0.5f);
-        private WaitForSeconds waitFor3Seconds = new WaitForSeconds(3);
-        private WaitForSeconds waitFor100ms = new WaitForSeconds(0.1f);
-
-        
 
         private System.Diagnostics.Stopwatch stopwatchBuildWorld = new System.Diagnostics.Stopwatch();
         private int createdCompletelyNewChunksCount;
@@ -95,7 +86,7 @@ namespace VoxelWorld
 
             if (loadFromFile)
             {
-                StartCoroutine(LoadWorldFromFile());
+                StartCoroutine(BuildWorldFromSaveFile());
             }
             else
             {
@@ -133,7 +124,6 @@ namespace VoxelWorld
 
                 chunks[chunkCoordinates].meshRendererSolidBlocks.enabled = meshEnabled;
                 chunks[chunkCoordinates].meshRendererFluidBlocks.enabled = meshEnabled;
-
             }
 
             createdChunkColumns.Add(new Vector2Int(worldX, worldZ));
@@ -147,115 +137,6 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// disables the mesh renderer of a chunk if that chunk exists already
-        /// </summary>
-        private void HideChunkColumn(int worldX, int worldZ)
-        {
-            for (int y = 0; y < worldDimensions.y; y++)
-            {
-                Vector3Int pos = new Vector3Int(worldX, y * chunkDimensions.y, worldZ);
-                if (createdChunks.Contains(pos))
-                {
-                    chunks[pos].meshRendererSolidBlocks.enabled = false;
-                    chunks[pos].meshRendererFluidBlocks.enabled = false;
-                }
-            }
-        }
-
-        public IEnumerator HealBlock(Chunk chunk, int blockIndex)
-        {
-            yield return waitFor3Seconds;
-            if (chunk.chunkData[blockIndex] != BlockType.Air)
-            {
-                chunk.healthData[blockIndex] = BlockType.Nocrack;
-                chunk.Redraw(waterLevel);
-            }
-        }
-
-        public IEnumerator Drop(Chunk chunk, int blockIndex, int strength = 3)
-        {
-            if (!MeshUtils.canDrop.Contains(chunk.chunkData[blockIndex]))
-            {
-                yield break;
-            }
-            yield return waitFor100ms;
-            while (true)
-            {
-                Vector3Int thisBlockPos = Chunk.ToBlockCoordinates(blockIndex);
-                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinates, thisBlockPos + Vector3Int.down);
-                int belowBlockIndex = Chunk.ToBlockIndex(adjustedBelowBlockPos);
-                Chunk chunkOfBelowBlock = chunks[chunkPosOfBelowBlock];
-                if (chunkOfBelowBlock != null && chunkOfBelowBlock.chunkData[belowBlockIndex] == BlockType.Air)
-                {
-                    //fall -> move block 1 down -> switch chunkData
-                    chunkOfBelowBlock.chunkData[belowBlockIndex] = chunk.chunkData[blockIndex];
-                    chunkOfBelowBlock.healthData[belowBlockIndex] = BlockType.Nocrack;
-
-                    chunk.chunkData[blockIndex] = BlockType.Air;
-                    chunk.healthData[blockIndex] = BlockType.Nocrack;
-
-                    // test if there is a fallable block above the new air block
-                    Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
-                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinates, aboveBlock);
-                    int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
-                    StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
-
-                    yield return waitFor100ms;
-
-                    chunk.Redraw(waterLevel);
-                    if (chunkOfBelowBlock != chunk)
-                    {
-                        chunkOfBelowBlock.Redraw(waterLevel);
-                    }
-
-                    chunk = chunkOfBelowBlock;
-                    blockIndex = belowBlockIndex;
-                }
-                else if (MeshUtils.canFlow.Contains(chunk.chunkData[blockIndex]))
-                {
-                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.left, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.right, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.forward, strength);
-                    FlowIntoNeighbours(thisBlockPos, chunk.coordinates, Vector3Int.back, strength);
-                    yield break;
-                }
-                else
-                {
-                    yield break;
-                }
-            }
-        }
-
-        public void FlowIntoNeighbours(Vector3Int blockPosition, Vector3Int chunkPosition, Vector3Int neighbourDirection, int strength)
-        {
-            strength--;
-            if (strength <= 0)
-            {
-                return;
-            }
-
-            Vector3Int neighbourPosition = blockPosition + neighbourDirection;
-            (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, neighbourPosition);
-
-            int neighbourBlockIndex = Chunk.ToBlockIndex(neighbourBlockPos);
-            Chunk neighbourChunk = chunks[neighbourChunkPos];
-
-            if (neighbourChunk != null && neighbourChunk.chunkData[neighbourBlockIndex] == BlockType.Air)
-            {
-                // flow
-                Debug.Log($"Flow");
-                neighbourChunk.chunkData[neighbourBlockIndex] = chunks[chunkPosition].chunkData[Chunk.ToBlockIndex(blockPosition)];
-                neighbourChunk.healthData[neighbourBlockIndex] = BlockType.Nocrack;
-                neighbourChunk.Redraw(waterLevel);
-                StartCoroutine(Drop(neighbourChunk, neighbourBlockIndex, strength--));
-            }
-            else
-            {
-                Debug.Log($"cannot flow, neighbour {neighbourBlockPos} is of type {neighbourChunk.chunkData[neighbourBlockIndex]}");
-            }
-        }
-
-        /// <summary>
         /// hooked up to UI Button
         /// </summary>
         public void SaveWorld()
@@ -263,7 +144,7 @@ namespace VoxelWorld
             FileSaver.Save(this, player);
         }
 
-        private IEnumerator LoadWorldFromFile()
+        private IEnumerator BuildWorldFromSaveFile()
         {
             WorldData worldData = FileSaver.Load(this);
             if (worldData == null)
@@ -277,6 +158,7 @@ namespace VoxelWorld
             for (int i = 0; i < worldData.createdChunksCoordinates.Length; i += 3)
             {
                 //TODO exclude invisible chunks
+
 
                 createdChunks.Add(new Vector3Int(
                     worldData.createdChunksCoordinates[i],
@@ -327,11 +209,11 @@ namespace VoxelWorld
             player.position = new Vector3(worldData.fpcX, worldData.fpcY, worldData.fpcZ);
             mainCamera.SetActive(false);
             player.SetActive(true);
-            lastPlayerPositionTriggeringNewChunks = Vector3Int.CeilToInt(player.position);
+            worldUpdater.lastPlayerPositionTriggeringNewChunks = Vector3Int.CeilToInt(player.position);
             loadingBar.gameObject.SetActive(false);
 
-            StartCoroutine(BuildQueueProcessor());
-            StartCoroutine(UpdateWorldMonitor());
+            StartCoroutine(worldUpdater.BuildQueueProcessor());
+            StartCoroutine(worldUpdater.UpdateWorldMonitor());
         }
 
         /// <summary>
@@ -350,50 +232,9 @@ namespace VoxelWorld
 
             player.Spawn();
 
-            StartCoroutine(BuildQueueProcessor());
-            StartCoroutine(UpdateWorldMonitor());
+            StartCoroutine(worldUpdater.BuildQueueProcessor());
+            StartCoroutine(worldUpdater.UpdateWorldMonitor());
             //StartCoroutine(BuildExtraWorld());
-        }
-
-        /// <summary>
-        /// BuildCoordinator monitors the build queue for tasks and runs them one after the other, one job per frame
-        /// </summary>
-        private IEnumerator BuildQueueProcessor()
-        {
-            Debug.Log("Start monitoring Build Queue");
-
-            while (true)
-            {
-                while (buildQueue.Count > 0)
-                {
-                    Debug.Log("process task from build queue");
-                    yield return StartCoroutine(buildQueue.Dequeue());
-                }
-                yield return null;
-            }
-        }
-
-        // checks every 500ms if the player has moved far enough to trigger the creation of new chunks
-        private IEnumerator UpdateWorldMonitor()
-        {
-            Debug.Log("Start monitoring player position");
-            while (true)
-            {
-                //TODO currently only works if chunk dimensions are uniform
-                int minWalkDistance = chunkDimensions.x;
-                float walkedDistance = (lastPlayerPositionTriggeringNewChunks - player.position).magnitude;
-                if (walkedDistance > minWalkDistance)
-                {
-                    lastPlayerPositionTriggeringNewChunks = player.position;
-
-                    (Vector3Int chunkCoordinate, Vector3Int blockCoordinate) = WorldUtils.FromWorldPosToCoordinates(player.position);
-                    Vector2Int chunkColumnCoordinates = new Vector2Int(chunkCoordinate.x, chunkCoordinate.z);
-                    buildQueue.Enqueue(HideChunkColumns(chunkColumnCoordinates));
-
-                    buildQueue.Enqueue(BuildChunkColumns(player.position, chunkColumnDrawRadius * chunkDimensions.x));
-                }
-                yield return waitFor500Ms;
-            }
         }
 
         private IEnumerator BuildExtraWorld()
@@ -411,26 +252,7 @@ namespace VoxelWorld
             }
         }
 
-        /// <summary>
-        /// hides all chunk columns which are beyond the draw radius
-        /// </summary>
-        /// <param name="currentChunkColumnCoordinate">the chunk column coordinate of the current player position</param> 
-        private IEnumerator HideChunkColumns(Vector2Int currentChunkColumnCoordinate)
-        {
-            Debug.Log($"Hide columns around {currentChunkColumnCoordinate.x}:{currentChunkColumnCoordinate.y}");
-
-            //TODO Improvement: we don't need to iterate all columns, only the visible ones
-            foreach (Vector2Int column in createdChunkColumns)
-            {
-                if ((column - currentChunkColumnCoordinate).magnitude > chunkColumnDrawRadius * chunkDimensions.x)
-                {
-                    HideChunkColumn(column.x, column.y);
-                }
-            }
-            yield return null;
-        }
-
-        private IEnumerator BuildChunkColumns(Vector3 playerPosition, int buildRadius)
+        public IEnumerator BuildChunkColumns(Vector3 playerPosition, int buildRadius)
         {
             stopwatchBuildWorld.Start();
 

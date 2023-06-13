@@ -23,7 +23,7 @@ public class WorldTests
     [SetUp]
     public void SetUp()
     {
-        World.chunkDimensions = new Vector3Int(10, 10, 10);
+        WorldBuilder.chunkDimensions = new Vector3Int(10, 10, 10);
     }
 
     [TestCaseSource(nameof(GetTestCaseDataForWorldPositionToCoordinates))]

@@ -11,9 +11,9 @@ namespace VoxelWorld
         public static (Vector3Int, Vector3Int) FromWorldPosToCoordinates(Vector3 worldPos)
         {
             Vector3Int chunkCoordinates = new Vector3Int();
-            chunkCoordinates.x = Mathf.FloorToInt(worldPos.x / World.chunkDimensions.x) * World.chunkDimensions.x;
-            chunkCoordinates.y = Mathf.FloorToInt(worldPos.y / World.chunkDimensions.y) * World.chunkDimensions.y;
-            chunkCoordinates.z = Mathf.FloorToInt(worldPos.z / World.chunkDimensions.z) * World.chunkDimensions.z;
+            chunkCoordinates.x = Mathf.FloorToInt(worldPos.x / WorldBuilder.chunkDimensions.x) * WorldBuilder.chunkDimensions.x;
+            chunkCoordinates.y = Mathf.FloorToInt(worldPos.y / WorldBuilder.chunkDimensions.y) * WorldBuilder.chunkDimensions.y;
+            chunkCoordinates.z = Mathf.FloorToInt(worldPos.z / WorldBuilder.chunkDimensions.z) * WorldBuilder.chunkDimensions.z;
 
             Vector3Int blockCoordinates = new Vector3Int();
             blockCoordinates.x = Mathf.FloorToInt(worldPos.x) - chunkCoordinates.x;
@@ -35,39 +35,39 @@ namespace VoxelWorld
             Vector3Int newBlockPos = blockPos;
 
             // X axis
-            if (blockPos.x >= World.chunkDimensions.x)
+            if (blockPos.x >= WorldBuilder.chunkDimensions.x)
             {
-                newBlockPos.x = blockPos.x % World.chunkDimensions.x;
-                newChunkPos.x += blockPos.x / World.chunkDimensions.x * World.chunkDimensions.x;
+                newBlockPos.x = blockPos.x % WorldBuilder.chunkDimensions.x;
+                newChunkPos.x += blockPos.x / WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.x;
             }
             else if (blockPos.x < 0)
             {
-                newBlockPos.x = Mathf.CeilToInt((float)Mathf.Abs(blockPos.x) / World.chunkDimensions.x) * World.chunkDimensions.x - Mathf.Abs(blockPos.x);
-                newChunkPos.x += Mathf.FloorToInt((float)blockPos.x / World.chunkDimensions.x) * World.chunkDimensions.x;
+                newBlockPos.x = Mathf.CeilToInt((float)Mathf.Abs(blockPos.x) / WorldBuilder.chunkDimensions.x) * WorldBuilder.chunkDimensions.x - Mathf.Abs(blockPos.x);
+                newChunkPos.x += Mathf.FloorToInt((float)blockPos.x / WorldBuilder.chunkDimensions.x) * WorldBuilder.chunkDimensions.x;
             }
 
             // Y axis
-            if (blockPos.y >= World.chunkDimensions.y)
+            if (blockPos.y >= WorldBuilder.chunkDimensions.y)
             {
-                newBlockPos.y = blockPos.y % World.chunkDimensions.y;
-                newChunkPos.y += blockPos.y / World.chunkDimensions.y * World.chunkDimensions.y;
+                newBlockPos.y = blockPos.y % WorldBuilder.chunkDimensions.y;
+                newChunkPos.y += blockPos.y / WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.y;
             }
             else if (blockPos.y < 0)
             {
-                newBlockPos.y = Mathf.CeilToInt((float)Mathf.Abs(blockPos.y) / World.chunkDimensions.y) * World.chunkDimensions.y - Mathf.Abs(blockPos.y);
-                newChunkPos.y += Mathf.FloorToInt((float)blockPos.y / World.chunkDimensions.y) * World.chunkDimensions.y;
+                newBlockPos.y = Mathf.CeilToInt((float)Mathf.Abs(blockPos.y) / WorldBuilder.chunkDimensions.y) * WorldBuilder.chunkDimensions.y - Mathf.Abs(blockPos.y);
+                newChunkPos.y += Mathf.FloorToInt((float)blockPos.y / WorldBuilder.chunkDimensions.y) * WorldBuilder.chunkDimensions.y;
             }
 
             // Z axis
-            if (blockPos.z >= World.chunkDimensions.z)
+            if (blockPos.z >= WorldBuilder.chunkDimensions.z)
             {
-                newBlockPos.z = blockPos.z % World.chunkDimensions.z;
-                newChunkPos.z += blockPos.z / World.chunkDimensions.z * World.chunkDimensions.z;
+                newBlockPos.z = blockPos.z % WorldBuilder.chunkDimensions.z;
+                newChunkPos.z += blockPos.z / WorldBuilder.chunkDimensions.z * WorldBuilder.chunkDimensions.z;
             }
             else if (blockPos.z < 0)
             {
-                newBlockPos.z = Mathf.CeilToInt((float)Mathf.Abs(blockPos.z) / World.chunkDimensions.z) * World.chunkDimensions.z - Mathf.Abs(blockPos.z);
-                newChunkPos.z += Mathf.FloorToInt((float)blockPos.z / World.chunkDimensions.z) * World.chunkDimensions.z;
+                newBlockPos.z = Mathf.CeilToInt((float)Mathf.Abs(blockPos.z) / WorldBuilder.chunkDimensions.z) * WorldBuilder.chunkDimensions.z - Mathf.Abs(blockPos.z);
+                newChunkPos.z += Mathf.FloorToInt((float)blockPos.z / WorldBuilder.chunkDimensions.z) * WorldBuilder.chunkDimensions.z;
             }
 
             return (newChunkPos, newBlockPos);

@@ -19,7 +19,9 @@ namespace VoxelWorld
         }
 
         [SerializeField]
-        private World world;
+        private WorldBuilder worldBuilder;
+        [SerializeField]
+        private WorldUpdater worldUpdater;
 
         private BlockType buildBlockType = BlockType.Dirt;
 
@@ -91,7 +93,7 @@ namespace VoxelWorld
             }
 
             (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(hitBlock);
-            Chunk thisChunk = world.chunks[chunkPosition];
+            Chunk thisChunk = worldBuilder.chunks[chunkPosition];
             int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
 
             // delete blocks with left mousebutton
@@ -110,10 +112,10 @@ namespace VoxelWorld
                         Vector3Int aboveBlock = blockPosition + Vector3Int.up;
                         (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
                         int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
-                        StartCoroutine(world.Drop(world.chunks[adjustedChunkPos], aboveBlockIndex));
+                        StartCoroutine(worldUpdater.HandleBlockDropping(worldBuilder.chunks[adjustedChunkPos], aboveBlockIndex));
                     }
 
-                    StartCoroutine(world.HealBlock(thisChunk, currentBlockIndex));
+                    StartCoroutine(thisChunk.HealBlock(currentBlockIndex, worldBuilder.waterLevel));
                 }
             }
             // build block with right mouse button
@@ -122,10 +124,10 @@ namespace VoxelWorld
                 Debug.Log($"Build in chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
                 thisChunk.chunkData[currentBlockIndex] = buildBlockType;
                 thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
-                StartCoroutine(world.Drop(thisChunk, currentBlockIndex));
+                StartCoroutine(worldUpdater.HandleBlockDropping(thisChunk, currentBlockIndex));
             }
 
-            thisChunk.Redraw(world.waterLevel);
+            thisChunk.Redraw(worldBuilder.waterLevel);
         }
 
         /// <summary>
@@ -135,22 +137,22 @@ namespace VoxelWorld
         {
             Debug.Log("Spawn Player");
 
-            float posX = World.chunkDimensions.x * 0.5f;
-            float posZ = World.chunkDimensions.z * 0.5f;
+            float posX = WorldBuilder.chunkDimensions.x * 0.5f;
+            float posZ = WorldBuilder.chunkDimensions.z * 0.5f;
 
             // get the height of the surface at the spawn position
             float posY = MeshUtils.fBM(
                 posX,
                 posZ,
-                World.surfaceSettings.octaves,
-                World.surfaceSettings.scale,
-                World.surfaceSettings.heightScale,
-                World.surfaceSettings.heightOffset);
+                WorldBuilder.surfaceSettings.octaves,
+                WorldBuilder.surfaceSettings.scale,
+                WorldBuilder.surfaceSettings.heightScale,
+                WorldBuilder.surfaceSettings.heightOffset);
 
             float verticalOffset = 3;
             firstPersonController.transform.position = new Vector3(posX, posY + verticalOffset, posZ);
-            world.lastPlayerPositionTriggeringNewChunks = firstPersonController.transform.position;
-            world.mainCamera.SetActive(false);
+            worldUpdater.lastPlayerPositionTriggeringNewChunks = firstPersonController.transform.position;
+            worldBuilder.mainCamera.SetActive(false);
             firstPersonController.SetActive(true);
         }
 
@@ -166,7 +168,7 @@ namespace VoxelWorld
             {
                 (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
-                Chunk chunk = world.chunks[chunkPosition];
+                Chunk chunk = worldBuilder.chunks[chunkPosition];
                 BlockType blockType = BlockType.Redstone;
                 blockType = chunk.chunkData[blockIndex];
 

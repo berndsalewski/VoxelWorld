@@ -44,7 +44,7 @@ namespace VoxelWorld
                 i += 2;
             }
 
-            allChunkData = new int[chunks.Count * World.chunkDimensions.x * World.chunkDimensions.y * World.chunkDimensions.z];
+            allChunkData = new int[chunks.Count * WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.z];
             chunkVisibility = new bool[chunks.Count];
             int vIndex = 0;
             i = 0;
@@ -74,15 +74,15 @@ namespace VoxelWorld
         {
             return Application.persistentDataPath
                 + "/savedata/World_"
-                + World.chunkDimensions.x + "_"
-                + World.chunkDimensions.y + "_"
-                + World.chunkDimensions.z + "_"
+                + WorldBuilder.chunkDimensions.x + "_"
+                + WorldBuilder.chunkDimensions.y + "_"
+                + WorldBuilder.chunkDimensions.z + "_"
                 + worldDimensions.x + "_"
                 + worldDimensions.y + "_"
                 + worldDimensions.z + ".dat";
         }
 
-        public static void Save(World world, Player player)
+        public static void Save(WorldBuilder world, Player player)
         {
             string fileName = BuildFileName(world.worldDimensions);
             if (!File.Exists(fileName))
@@ -97,7 +97,7 @@ namespace VoxelWorld
             Debug.Log($"Saving World to File: {fileName}");
         }
 
-        public static WorldData Load(World world)
+        public static WorldData Load(WorldBuilder world)
         {
             string fileName = BuildFileName(world.worldDimensions);
             if (File.Exists(fileName))

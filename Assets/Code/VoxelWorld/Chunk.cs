@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -8,7 +9,6 @@ using UnityEngine.Rendering;
 
 namespace VoxelWorld
 {
-
     /// <summary>
     /// a Chunk contains width * height * depth blocks and is a piece of
     /// geometry which is generated in one pass
@@ -58,9 +58,9 @@ namespace VoxelWorld
             // y = (i / width) % height
             // z = i / (width * height)
             return new Vector3Int(
-                index % World.chunkDimensions.x,
-                (index / World.chunkDimensions.x) % World.chunkDimensions.y,
-                index / (World.chunkDimensions.x * World.chunkDimensions.y));
+                index % WorldBuilder.chunkDimensions.x,
+                (index / WorldBuilder.chunkDimensions.x) % WorldBuilder.chunkDimensions.y,
+                index / (WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y));
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace VoxelWorld
         public static int ToBlockIndex(Vector3Int coordinates)
         {
             // i = x + WIDTH * (y + DEPTH * z)
-            return coordinates.x + World.chunkDimensions.x * (coordinates.y + World.chunkDimensions.z * coordinates.z);
+            return coordinates.x + WorldBuilder.chunkDimensions.x * (coordinates.y + WorldBuilder.chunkDimensions.z * coordinates.z);
         }
 
         /// <summary>
@@ -328,7 +328,23 @@ namespace VoxelWorld
             DestroyImmediate(GetComponent<MeshFilter>());
             DestroyImmediate(GetComponent<MeshRenderer>());
             DestroyImmediate(GetComponent<Collider>());
-            CreateMeshes(World.chunkDimensions, coordinates, waterLevel, false);
+            CreateMeshes(WorldBuilder.chunkDimensions, coordinates, waterLevel, false);
+        }
+
+        /// <summary>
+        /// resets a blocks health to normal after 3 seconds
+        /// </summary>
+        /// <param name="blockIndex"></param>
+        /// <param name="waterLevel"></param>
+        /// <returns></returns>
+        public IEnumerator HealBlock(int blockIndex, int waterLevel)
+        {
+            yield return new WaitForSeconds(3);
+            if (chunkData[blockIndex] != BlockType.Air)
+            {
+                healthData[blockIndex] = BlockType.Nocrack;
+                Redraw(waterLevel);
+            }
         }
 
         /// <summary>
@@ -426,42 +442,42 @@ namespace VoxelWorld
                 int surfaceHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    World.surfaceSettings.octaves,
-                    World.surfaceSettings.scale,
-                    World.surfaceSettings.heightScale,
-                    World.surfaceSettings.heightOffset));
+                    WorldBuilder.surfaceSettings.octaves,
+                    WorldBuilder.surfaceSettings.scale,
+                    WorldBuilder.surfaceSettings.heightScale,
+                    WorldBuilder.surfaceSettings.heightOffset));
 
                 int stoneHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    World.stoneSettings.octaves,
-                    World.stoneSettings.scale,
-                    World.stoneSettings.heightScale,
-                    World.stoneSettings.heightOffset));
+                    WorldBuilder.stoneSettings.octaves,
+                    WorldBuilder.stoneSettings.scale,
+                    WorldBuilder.stoneSettings.heightScale,
+                    WorldBuilder.stoneSettings.heightOffset));
 
                 int diamondTopHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    World.diamondTopSettings.octaves,
-                    World.diamondTopSettings.scale,
-                    World.diamondTopSettings.heightScale,
-                    World.diamondTopSettings.heightOffset));
+                    WorldBuilder.diamondTopSettings.octaves,
+                    WorldBuilder.diamondTopSettings.scale,
+                    WorldBuilder.diamondTopSettings.heightScale,
+                    WorldBuilder.diamondTopSettings.heightOffset));
 
                 int diamondBottomHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    World.diamondBottomSettings.octaves,
-                    World.diamondBottomSettings.scale,
-                    World.diamondBottomSettings.heightScale,
-                    World.diamondBottomSettings.heightOffset));
+                    WorldBuilder.diamondBottomSettings.octaves,
+                    WorldBuilder.diamondBottomSettings.scale,
+                    WorldBuilder.diamondBottomSettings.heightScale,
+                    WorldBuilder.diamondBottomSettings.heightOffset));
 
                 hData[i] = BlockType.Nocrack;
 
-                float digCave = MeshUtils.fBM3D(xPos, yPos, zPos, World.caveSettings.octaves, World.caveSettings.scale,
-                    World.caveSettings.heightScale, World.caveSettings.heightOffset);
+                float digCave = MeshUtils.fBM3D(xPos, yPos, zPos, WorldBuilder.caveSettings.octaves, WorldBuilder.caveSettings.scale,
+                    WorldBuilder.caveSettings.heightScale, WorldBuilder.caveSettings.heightOffset);
 
-                float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, World.treeSettings.octaves, World.treeSettings.scale,
-                    World.treeSettings.heightScale, World.treeSettings.heightOffset);
+                float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, WorldBuilder.treeSettings.octaves, WorldBuilder.treeSettings.scale,
+                    WorldBuilder.treeSettings.heightScale, WorldBuilder.treeSettings.heightOffset);
 
                 if (yPos == 0)
                 {
@@ -480,7 +496,7 @@ namespace VoxelWorld
                 }
                 else if (yPos == surfaceHeight)
                 {
-                    if (plantTree < World.treeSettings.drawCutOff && random.NextFloat() <= 0.2f)
+                    if (plantTree < WorldBuilder.treeSettings.drawCutOff && random.NextFloat() <= 0.2f)
                     {
                         cData[i] = BlockType.Woodbase;
                     }
@@ -489,15 +505,15 @@ namespace VoxelWorld
                         cData[i] = BlockType.GrassTop;
                     }
                 }
-                else if (digCave < World.caveSettings.drawCutOff)
+                else if (digCave < WorldBuilder.caveSettings.drawCutOff)
                 {
                     cData[i] = BlockType.Air;
                 }
-                else if (yPos < stoneHeight && random.NextFloat() < World.stoneSettings.probability)
+                else if (yPos < stoneHeight && random.NextFloat() < WorldBuilder.stoneSettings.probability)
                 {
                     cData[i] = BlockType.Stone;
                 }
-                else if (yPos > diamondBottomHeight && yPos < diamondTopHeight && random.NextFloat() < World.diamondTopSettings.probability)
+                else if (yPos > diamondBottomHeight && yPos < diamondTopHeight && random.NextFloat() < WorldBuilder.diamondTopSettings.probability)
                 {
                     cData[i] = BlockType.Diamond;
                 }
