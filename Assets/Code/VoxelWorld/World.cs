@@ -56,7 +56,7 @@ namespace VoxelWorld
         public static Perlin3DSettings treeSettings;
         public Perlin3DGrapher trees;
 
-        public GameObject highlightBlock;
+        public Player player;
 
         /// keeps track of which chunks have been created already
         public HashSet<Vector3Int> createdChunks = new HashSet<Vector3Int>();
@@ -77,8 +77,7 @@ namespace VoxelWorld
         private WaitForSeconds waitFor3Seconds = new WaitForSeconds(3);
         private WaitForSeconds waitFor100ms = new WaitForSeconds(0.1f);
 
-        private BlockType buildBlockType = BlockType.Dirt;
-        private Vector3 moveToCenterVector = new Vector3(0.5f, 0.5f, 0.5f);
+        
 
         private System.Diagnostics.Stopwatch stopwatchBuildWorld = new System.Diagnostics.Stopwatch();
         private int createdCompletelyNewChunksCount;
@@ -105,16 +104,6 @@ namespace VoxelWorld
             }
         }
 
-        /// <summary>
-        /// used by Buttons in Scene
-        /// </summary>
-        /// <param name="type"></param>
-        public void SetBuildType(int type)
-        {
-            buildBlockType = (BlockType)type;
-            Debug.Log($"Build Type: {buildBlockType}");
-        }
-
         // System.Tuple<Vector3Int, Vector3Int> can be written as (Vector3Int, Vector3Int) since C#7
         // computes chunk and block coordinates for a given point in the world
         // currently only works if blocks have a size of 1 and are aligned to the unity grid
@@ -139,7 +128,7 @@ namespace VoxelWorld
         /// <param name="chunkPos"></param>
         /// <param name="blockPos"></param>
         /// <returns></returns>
-        public (Vector3Int, Vector3Int) AdjustCoordinatesToGrid(Vector3Int chunkPos, Vector3Int blockPos)
+        public static (Vector3Int, Vector3Int) AdjustCoordinatesToGrid(Vector3Int chunkPos, Vector3Int blockPos)
         {
             Vector3Int newChunkPos = chunkPos;
             Vector3Int newBlockPos = blockPos;
@@ -183,93 +172,6 @@ namespace VoxelWorld
             return (newChunkPos, newBlockPos);
         }
 
-        private void Update()
-        {
-            RaycastHit hit;
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit, 10, int.MaxValue, QueryTriggerInteraction.Ignore))
-            {
-                if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
-                {
-                    HandleMouseInput(hit);
-                }
-
-                Vector3 highlightBlockCenterPoint = hit.point - hit.normal * Block.HALF_BLOCK_SIZE;
-                highlightBlockCenterPoint.x = Mathf.Floor(highlightBlockCenterPoint.x);
-                highlightBlockCenterPoint.y = Mathf.Floor(highlightBlockCenterPoint.y);
-                highlightBlockCenterPoint.z = Mathf.Floor(highlightBlockCenterPoint.z);
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                // for debug output, see OnGui
-                selectedBlockWorldPosition = highlightBlockCenterPoint;
-                didRaycastHitACollider = true;
-                hitColliderName = hit.collider?.name;
-                rayCastHitPoint = hit.point;
-#endif
-
-                highlightBlockCenterPoint += moveToCenterVector;
-                highlightBlock.transform.position = highlightBlockCenterPoint;
-                highlightBlock.SetActive(true);
-            }
-            else
-            {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                didRaycastHitACollider = false;
-#endif
-                highlightBlock.SetActive(false);
-            }
-        }
-
-        private void HandleMouseInput(RaycastHit hit)
-        {
-            Vector3 hitBlock;
-            if (Input.GetMouseButton(0))
-            {
-                hitBlock = hit.point - hit.normal * Block.HALF_BLOCK_SIZE;
-            }
-            else
-            {
-                hitBlock = hit.point + hit.normal * Block.HALF_BLOCK_SIZE;
-            }
-
-            (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToCoordinates(hitBlock);
-            Chunk thisChunk = chunks[chunkPosition];
-            int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
-
-            // delete blocks with left mousebutton
-            if (Input.GetMouseButton(0))
-            {
-                if (MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]] > -1)
-                {
-                    thisChunk.healthData[currentBlockIndex]++;
-                    if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack +
-                        MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
-                    {
-                        Debug.Log($"Delete at chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
-                        thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
-
-                        // takes care of dropping blocks
-                        Vector3Int aboveBlock = blockPosition + Vector3Int.up;
-                        (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
-                        int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
-                        StartCoroutine(Drop(chunks[adjustedChunkPos], aboveBlockIndex));
-                    }
-
-                    StartCoroutine(HealBlock(thisChunk, currentBlockIndex));
-                }
-            }
-            // build block with right mouse button
-            else
-            {
-                Debug.Log($"Build in chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
-                thisChunk.chunkData[currentBlockIndex] = buildBlockType;
-                thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
-                StartCoroutine(Drop(thisChunk, currentBlockIndex));
-            }
-
-            RedrawChunk(thisChunk);
-        }
-
         /// <summary>
         /// creates a new column of chunks at the given coordinate, which corresponds with world position currently
         /// skips creation if a chunk already exist at the position but will set its visibility to <paramref name="meshEnabled"/>
@@ -289,7 +191,7 @@ namespace VoxelWorld
                     stopwatchChunkGeneration.Start();
                     GameObject chunkGO = Instantiate(chunkPrefab);
                     Chunk chunk = chunkGO.GetComponent<Chunk>();
-                    chunk.CreateChunk(chunkDimensions, chunkCoordinates, waterLevel);
+                    chunk.CreateMeshes(chunkDimensions, chunkCoordinates, waterLevel);
                     createdChunks.Add(chunkCoordinates);
                     chunks.Add(chunkCoordinates, chunk);
                     //Debug.Log($"Chunk created at {chunkCoordinates}");
@@ -349,18 +251,17 @@ namespace VoxelWorld
             }
         }
 
-        private IEnumerator HealBlock(Chunk c, int blockIndex)
+        public IEnumerator HealBlock(Chunk c, int blockIndex)
         {
             yield return waitFor3Seconds;
             if (c.chunkData[blockIndex] != BlockType.Air)
             {
                 c.healthData[blockIndex] = BlockType.Nocrack;
                 RedrawChunk(c);
-
             }
         }
 
-        private IEnumerator Drop(Chunk chunk, int blockIndex, int strength = 3)
+        public IEnumerator Drop(Chunk chunk, int blockIndex, int strength = 3)
         {
             if (!MeshUtils.canDrop.Contains(chunk.chunkData[blockIndex]))
             {
@@ -443,12 +344,16 @@ namespace VoxelWorld
             }
         }
 
-        private void RedrawChunk(Chunk chunk)
+        /// <summary>
+        /// updates a chunk after changes, regenerates the mesh
+        /// </summary>
+        /// <param name="chunk"></param>
+        public void RedrawChunk(Chunk chunk)
         {
             DestroyImmediate(chunk.GetComponent<MeshFilter>());
             DestroyImmediate(chunk.GetComponent<MeshRenderer>());
             DestroyImmediate(chunk.GetComponent<Collider>());
-            chunk.CreateChunk(chunkDimensions, chunk.coordinates, waterLevel, false);
+            chunk.CreateMeshes(chunkDimensions, chunk.coordinates, waterLevel, false);
         }
 
         public void SaveWorld()
@@ -465,10 +370,12 @@ namespace VoxelWorld
                 yield break;
             }
 
+            // populate runtime data structures with data from file
             createdChunks.Clear();
-            // populate runtime data structures with loaded data
             for (int i = 0; i < worldData.createdChunksCoordinates.Length; i += 3)
             {
+                //TODO exclude invisible chunks
+
                 createdChunks.Add(new Vector3Int(
                     worldData.createdChunksCoordinates[i],
                     worldData.createdChunksCoordinates[i + 1],
@@ -478,6 +385,8 @@ namespace VoxelWorld
             createdChunkColumns.Clear();
             for (int i = 0; i < worldData.chunkColumnValues.Length; i += 2)
             {
+                //TODO exclude invisible columns
+
                 createdChunkColumns.Add(new Vector2Int(
                     worldData.chunkColumnValues[i],
                     worldData.chunkColumnValues[i + 1]));
@@ -485,8 +394,8 @@ namespace VoxelWorld
 
             int blockCount = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
             InitLoadingBar(createdChunks.Count);
-            int index = 0;
-            int vIndex = 0;
+            int chunkDataIndex = 0;
+            int chunkIndex = 0;
             foreach (Vector3Int chunkPos in createdChunks)
             {
                 GameObject chunkGO = Instantiate(chunkPrefab);
@@ -498,17 +407,17 @@ namespace VoxelWorld
 
                 for (int i = 0; i < blockCount; i++)
                 {
-                    chunk.chunkData[i] = (BlockType)worldData.allChunkData[index];
+                    chunk.chunkData[i] = (BlockType)worldData.allChunkData[chunkDataIndex];
                     chunk.healthData[i] = BlockType.Nocrack;
-                    index++;
+                    chunkDataIndex++;
                 }
 
-                chunk.CreateChunk(chunkDimensions, chunkPos, waterLevel, false);
+                chunk.CreateMeshes(chunkDimensions, chunkPos, waterLevel, false);
                 chunks.Add(chunkPos, chunk);
                 RedrawChunk(chunk);
-                chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[vIndex];
-                chunk.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[vIndex];
-                vIndex++;
+                chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
+                chunk.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
+                chunkIndex++;
                 loadingBar.value++;
                 yield return null;
             }
@@ -642,7 +551,6 @@ namespace VoxelWorld
                 }
             }
 
-
             // all debug related
             Debug.Log($"Building of chunk columns finished after {stopwatchBuildWorld.ElapsedMilliseconds}ms. {createdCompletelyNewChunksCount} Chunks were created.");
             stopwatchBuildWorld.Reset();
@@ -653,38 +561,5 @@ namespace VoxelWorld
             chunkGenerationTimes.Clear();
             createdCompletelyNewChunksCount = 0;
         }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private Vector3 selectedBlockWorldPosition;
-        private Vector3 rayCastHitPoint;
-        private bool didRaycastHitACollider;
-        private string hitColliderName;
-
-        private void OnGUI()
-        {
-            if (didRaycastHitACollider)
-            {
-                (Vector3Int chunkPosition, Vector3Int blockPosition) = FromWorldPosToCoordinates(selectedBlockWorldPosition);
-                int blockIndex = Chunk.ToBlockIndex(blockPosition);
-                Chunk chunk = chunks[chunkPosition];
-                BlockType blockType = BlockType.Redstone;
-                blockType = chunk.chunkData[blockIndex];
-
-                GUIStyle boxStyle = new GUIStyle();
-                boxStyle.alignment = TextAnchor.UpperLeft;
-                boxStyle.normal.textColor = Color.white;
-                boxStyle.normal.background = Texture2D.grayTexture;
-                boxStyle.padding.left = 5;
-                boxStyle.padding.top = 5;
-
-                GUI.Box(new Rect(10f, 10f, 160f, 24f), $"Chunk: {chunkPosition}", boxStyle);
-                GUI.Box(new Rect(10f, 35f, 160f, 24f), $"Block: {blockPosition}", boxStyle);
-                GUI.Box(new Rect(10f, 60f, 160f, 24f), $"Block Id:  {blockIndex}", boxStyle);
-                GUI.Box(new Rect(10f, 85f, 160f, 24f), $"Type:  {blockType}", boxStyle);
-                GUI.Box(new Rect(10f, 110f, 160f, 24f), $"Hit:  {rayCastHitPoint}", boxStyle);
-                GUI.Box(new Rect(10f, 135f, 160f, 24f), $"Collider:  {hitColliderName}", boxStyle);
-            }
-        }
-#endif
     }
 }
