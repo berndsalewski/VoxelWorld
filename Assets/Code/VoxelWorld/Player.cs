@@ -125,7 +125,7 @@ namespace VoxelWorld
                 StartCoroutine(world.Drop(thisChunk, currentBlockIndex));
             }
 
-            world.RedrawChunk(thisChunk);
+            thisChunk.Redraw(world.waterLevel);
         }
 
         /// <summary>

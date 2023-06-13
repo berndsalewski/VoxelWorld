@@ -320,6 +320,18 @@ namespace VoxelWorld
         }
 
         /// <summary>
+        /// updates a chunk after changes, regenerates the mesh
+        /// </summary>
+        /// <param name="chunk"></param>
+        public void Redraw(int waterLevel)
+        {
+            DestroyImmediate(GetComponent<MeshFilter>());
+            DestroyImmediate(GetComponent<MeshRenderer>());
+            DestroyImmediate(GetComponent<Collider>());
+            CreateMeshes(World.chunkDimensions, coordinates, waterLevel, false);
+        }
+
+        /// <summary>
         /// merges a collection of input meshes into one output mesh
         /// </summary>
         [BurstCompile]

@@ -162,13 +162,13 @@ namespace VoxelWorld
             }
         }
 
-        public IEnumerator HealBlock(Chunk c, int blockIndex)
+        public IEnumerator HealBlock(Chunk chunk, int blockIndex)
         {
             yield return waitFor3Seconds;
-            if (c.chunkData[blockIndex] != BlockType.Air)
+            if (chunk.chunkData[blockIndex] != BlockType.Air)
             {
-                c.healthData[blockIndex] = BlockType.Nocrack;
-                RedrawChunk(c);
+                chunk.healthData[blockIndex] = BlockType.Nocrack;
+                chunk.Redraw(waterLevel);
             }
         }
 
@@ -202,10 +202,10 @@ namespace VoxelWorld
 
                     yield return waitFor100ms;
 
-                    RedrawChunk(chunk);
+                    chunk.Redraw(waterLevel);
                     if (chunkOfBelowBlock != chunk)
                     {
-                        RedrawChunk(chunkOfBelowBlock);
+                        chunkOfBelowBlock.Redraw(waterLevel);
                     }
 
                     chunk = chunkOfBelowBlock;
@@ -246,25 +246,13 @@ namespace VoxelWorld
                 Debug.Log($"Flow");
                 neighbourChunk.chunkData[neighbourBlockIndex] = chunks[chunkPosition].chunkData[Chunk.ToBlockIndex(blockPosition)];
                 neighbourChunk.healthData[neighbourBlockIndex] = BlockType.Nocrack;
-                RedrawChunk(neighbourChunk);
+                neighbourChunk.Redraw(waterLevel);
                 StartCoroutine(Drop(neighbourChunk, neighbourBlockIndex, strength--));
             }
             else
             {
                 Debug.Log($"cannot flow, neighbour {neighbourBlockPos} is of type {neighbourChunk.chunkData[neighbourBlockIndex]}");
             }
-        }
-
-        /// <summary>
-        /// updates a chunk after changes, regenerates the mesh
-        /// </summary>
-        /// <param name="chunk"></param>
-        public void RedrawChunk(Chunk chunk)
-        {
-            DestroyImmediate(chunk.GetComponent<MeshFilter>());
-            DestroyImmediate(chunk.GetComponent<MeshRenderer>());
-            DestroyImmediate(chunk.GetComponent<Collider>());
-            chunk.CreateMeshes(chunkDimensions, chunk.coordinates, waterLevel, false);
         }
 
         /// <summary>
@@ -328,7 +316,7 @@ namespace VoxelWorld
 
                 chunk.CreateMeshes(chunkDimensions, chunkPos, waterLevel, false);
                 chunks.Add(chunkPos, chunk);
-                RedrawChunk(chunk);
+                chunk.Redraw(waterLevel);
                 chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
                 chunk.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
                 chunkIndex++;
