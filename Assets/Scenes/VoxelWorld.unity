@@ -641,8 +641,9 @@ GameObject:
   m_Component:
   - component: {fileID: 530713734}
   - component: {fileID: 530713735}
+  - component: {fileID: 530713736}
   m_Layer: 5
-  m_Name: Slider
+  m_Name: WorldGenerationProgressbar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -721,6 +722,19 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &530713736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 530713733}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8c2f60541a43434aa7521064d114cb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  progressbar: {fileID: 530713735}
 --- !u!1 &553674329
 GameObject:
   m_ObjectHideFlags: 0
@@ -1229,7 +1243,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -24, y: -24}
+  m_AnchoredPosition: {x: -25.27, y: -24}
   m_SizeDelta: {x: 48, y: 48}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &963194225
@@ -2507,7 +2521,6 @@ MonoBehaviour:
   loadFromFile: 0
   chunkPrefab: {fileID: 7167185840046066545, guid: 5eae10abd5016435394c58d8be4609f6, type: 3}
   mainCamera: {fileID: 963194225}
-  loadingBar: {fileID: 530713735}
   surface: {fileID: 1065717134}
   stone: {fileID: 333466134}
   diamondTop: {fileID: 1250966552}
@@ -2516,6 +2529,51 @@ MonoBehaviour:
   trees: {fileID: 1256400402102580266, guid: 229ed7e63bea548d8a38dda33b5a5bd4, type: 3}
   player: {fileID: 76540823}
   worldUpdater: {fileID: 1461771034}
+  worldBuildingStarted:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 530713736}
+        m_TargetAssemblyTypeName: WorldBuildingProgressUpdater, Assembly-CSharp
+        m_MethodName: Show
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  worldBuildingUpdated:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 530713736}
+        m_TargetAssemblyTypeName: WorldBuildingProgressUpdater, Assembly-CSharp
+        m_MethodName: UpdateProgress
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  worldBuildingEnded:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 530713736}
+        m_TargetAssemblyTypeName: WorldBuildingProgressUpdater, Assembly-CSharp
+        m_MethodName: Hide
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!4 &1461771033
 Transform:
   m_ObjectHideFlags: 0
