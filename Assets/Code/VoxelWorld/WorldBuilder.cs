@@ -201,8 +201,9 @@ namespace VoxelWorld
                     worldData.chunkColumnValues[i + 1]));
             }
 
+            worldBuildingStarted.Invoke(_initialChunkColumnCount * 3);
+
             int blockCount = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
-            worldBuildingStarted.Invoke(_initialChunkColumnCount);//TODO fix progressbar for loading from file
             int chunkDataIndex = 0;
             int chunkIndex = 0;
             foreach (Vector3Int chunkPos in createdChunks)
