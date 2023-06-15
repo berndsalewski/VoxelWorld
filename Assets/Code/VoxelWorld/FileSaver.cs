@@ -10,20 +10,33 @@ namespace VoxelWorld
     public class WorldData
     {
         /// <summary>
-        /// stores serialized coordinates of all created chunks
+        /// coordinates of all created chunks
         /// </summary>
+
         public int[] createdChunksCoordinates;
+
+        /// <summary>
+        /// coordinates of all created chunk columns
+        /// </summary>
         public int[] chunkColumnValues;
-        public int[] allChunkData;
+
+        /// <summary>
+        /// chunk data for all created chunks
+        /// </summary>
+        public int[] chunkData;
+
+        /// <summary>
+        /// visibility data for all created chunks
+        /// </summary>
         public bool[] chunkVisibility;
 
-        public int fpcX;
-        public int fpcY;
-        public int fpcZ;
+        public float playerPositionX;
+        public float playerPositionY;
+        public float playerPositionZ;
 
         public WorldData() { }
 
-        public WorldData(HashSet<Vector3Int> createdChunks, HashSet<Vector2Int> createdChunkColumns, Dictionary<Vector3Int, Chunk> chunks, Vector3 fpcPos)
+        public WorldData(HashSet<Vector3Int> createdChunks, HashSet<Vector2Int> createdChunkColumns, Dictionary<Vector3Int, Chunk> chunks, Vector3 playerPosition)
         {
             createdChunksCoordinates = new int[createdChunks.Count * 3];
             int i = 0;
@@ -44,7 +57,7 @@ namespace VoxelWorld
                 i += 2;
             }
 
-            allChunkData = new int[chunks.Count * WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.z];
+            chunkData = new int[chunks.Count * WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.z];
             chunkVisibility = new bool[chunks.Count];
             int vIndex = 0;
             i = 0;
@@ -53,16 +66,16 @@ namespace VoxelWorld
                 foreach (BlockType blockType in item.Value.chunkData)
                 {
 
-                    allChunkData[i] = (int)blockType;
+                    chunkData[i] = (int)blockType;
                     i++;
                 }
                 chunkVisibility[vIndex] = item.Value.meshRendererSolidBlocks.enabled;
                 vIndex++;
             }
 
-            fpcX = (int)fpcPos.x;
-            fpcY = (int)fpcPos.y;
-            fpcZ = (int)fpcPos.z;
+            playerPositionX = (int)playerPosition.x + Block.HALF_BLOCK_SIZE;
+            playerPositionY = (int)playerPosition.y + Block.HALF_BLOCK_SIZE;
+            playerPositionZ = (int)playerPosition.z + Block.HALF_BLOCK_SIZE;
         }
     }
 

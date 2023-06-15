@@ -17,7 +17,7 @@ namespace VoxelWorld
         public const float BLOCK_SIZE = 1f;
         public const float HALF_BLOCK_SIZE = BLOCK_SIZE * 0.5f;
 
-        private static Vector3 blockOffset = new Vector3(0.5f, 0.5f, 0.5f);
+        private static Vector3 blockOffset = new Vector3(HALF_BLOCK_SIZE, HALF_BLOCK_SIZE, HALF_BLOCK_SIZE);
 
         public Mesh mesh;
 

@@ -51,9 +51,9 @@ namespace VoxelWorld
                 }
 
                 Vector3 highlightBlockCenterPoint = hit.point - hit.normal * Block.HALF_BLOCK_SIZE;
-                highlightBlockCenterPoint.x = Mathf.Floor(highlightBlockCenterPoint.x) + 0.5f;
-                highlightBlockCenterPoint.y = Mathf.Floor(highlightBlockCenterPoint.y) + 0.5f;
-                highlightBlockCenterPoint.z = Mathf.Floor(highlightBlockCenterPoint.z) + 0.5f;
+                highlightBlockCenterPoint.x = Mathf.Floor(highlightBlockCenterPoint.x) + Block.HALF_BLOCK_SIZE;
+                highlightBlockCenterPoint.y = Mathf.Floor(highlightBlockCenterPoint.y) + Block.HALF_BLOCK_SIZE;
+                highlightBlockCenterPoint.z = Mathf.Floor(highlightBlockCenterPoint.z) + Block.HALF_BLOCK_SIZE;
 
                 highlightBlock.transform.position = highlightBlockCenterPoint;
                 highlightBlock.SetActive(true);

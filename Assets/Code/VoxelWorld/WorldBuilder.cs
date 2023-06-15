@@ -217,7 +217,7 @@ namespace VoxelWorld
 
                 for (int i = 0; i < blockCount; i++)
                 {
-                    chunk.chunkData[i] = (BlockType)worldData.allChunkData[chunkDataIndex];
+                    chunk.chunkData[i] = (BlockType)worldData.chunkData[chunkDataIndex];
                     chunk.healthData[i] = BlockType.Nocrack;
                     chunkDataIndex++;
                 }
@@ -233,7 +233,7 @@ namespace VoxelWorld
             }
 
             worldBuildingEnded.Invoke();
-            player.position = new Vector3(worldData.fpcX, worldData.fpcY, worldData.fpcZ);
+            player.position = new Vector3(worldData.playerPositionX, worldData.playerPositionY, worldData.playerPositionZ);
             mainCamera.SetActive(false);
             player.SetActive(true);
             worldUpdater.lastPlayerPositionTriggeringNewChunks = Vector3Int.CeilToInt(player.position);
