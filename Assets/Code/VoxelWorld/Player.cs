@@ -22,21 +22,13 @@ namespace VoxelWorld
         private WorldBuilder worldBuilder;
         [SerializeField]
         private WorldUpdater worldUpdater;
+        private WorldDataModel _worldModel;
 
         private BlockType buildBlockType = BlockType.Dirt;
 
-        /// <summary>
-        /// used by Buttons in Scene
-        /// </summary>
-        /// <param name="type"></param>
-        public void SetBuildType(int type)
+        private void Start()
         {
-            buildBlockType = (BlockType)type;
-        }
-
-        public void SetActive(bool isActive)
-        {
-            firstPersonController.SetActive(isActive);
+            _worldModel = WorldDataModel.Instance;
         }
 
         private void Update()
@@ -77,6 +69,20 @@ namespace VoxelWorld
         }
 
         /// <summary>
+        /// used by Buttons in Scene
+        /// </summary>
+        /// <param name="type"></param>
+        public void SetBuildType(int type)
+        {
+            buildBlockType = (BlockType)type;
+        }
+
+        public void SetActive(bool isActive)
+        {
+            firstPersonController.SetActive(isActive);
+        }
+
+        /// <summary>
         /// delete or build blocks
         /// </summary>
         /// <param name="hit"></param>
@@ -93,7 +99,7 @@ namespace VoxelWorld
             }
 
             (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(hitBlock);
-            Chunk thisChunk = worldBuilder.chunks[chunkPosition];
+            Chunk thisChunk = _worldModel.chunks[chunkPosition];
             int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
 
             // delete blocks with left mousebutton
@@ -112,7 +118,7 @@ namespace VoxelWorld
                         Vector3Int aboveBlock = blockPosition + Vector3Int.up;
                         (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
                         int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
-                        StartCoroutine(worldUpdater.HandleBlockDropping(worldBuilder.chunks[adjustedChunkPos], aboveBlockIndex));
+                        StartCoroutine(worldUpdater.HandleBlockDropping(_worldModel.chunks[adjustedChunkPos], aboveBlockIndex));
                     }
 
                     StartCoroutine(thisChunk.HealBlock(currentBlockIndex, worldBuilder.waterLevel));
@@ -168,7 +174,7 @@ namespace VoxelWorld
             {
                 (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
-                Chunk chunk = worldBuilder.chunks[chunkPosition];
+                Chunk chunk = _worldModel.chunks[chunkPosition];
                 BlockType blockType = BlockType.Redstone;
                 blockType = chunk.chunkData[blockIndex];
 

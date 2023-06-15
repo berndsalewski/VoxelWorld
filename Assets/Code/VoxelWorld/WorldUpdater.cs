@@ -18,6 +18,13 @@ namespace VoxelWorld
         // holds coroutines for building chunks and hiding chunk columns
         private Queue<IEnumerator> buildQueue = new Queue<IEnumerator>();
 
+        private WorldDataModel _worldModel;
+
+        private void Start()
+        {
+            _worldModel = WorldDataModel.Instance;
+        }
+
         /// <summary>
         /// checks if the block at that position can drop and drop it if below is air block
         /// </summary>
@@ -37,7 +44,7 @@ namespace VoxelWorld
                 Vector3Int thisBlockPos = Chunk.ToBlockCoordinates(blockIndex);
                 (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinates, thisBlockPos + Vector3Int.down);
                 int belowBlockIndex = Chunk.ToBlockIndex(adjustedBelowBlockPos);
-                Chunk chunkOfBelowBlock = worldBuilder.chunks[chunkPosOfBelowBlock];
+                Chunk chunkOfBelowBlock = _worldModel.chunks[chunkPosOfBelowBlock];
                 if (chunkOfBelowBlock?.chunkData[belowBlockIndex] == BlockType.Air)
                 {
                     //fall -> move block 1 down -> switch chunkData
@@ -50,7 +57,7 @@ namespace VoxelWorld
                     Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
                     (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinates, aboveBlock);
                     int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
-                    StartCoroutine(HandleBlockDropping(worldBuilder.chunks[adjustedChunkPos], aboveBlockIndex));
+                    StartCoroutine(HandleBlockDropping(_worldModel.chunks[adjustedChunkPos], aboveBlockIndex));
 
                     yield return new WaitForSeconds(0.1f);
 
@@ -90,13 +97,13 @@ namespace VoxelWorld
             (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, neighbourPosition);
 
             int neighbourBlockIndex = Chunk.ToBlockIndex(neighbourBlockPos);
-            Chunk neighbourChunk = worldBuilder.chunks[neighbourChunkPos];
+            Chunk neighbourChunk = _worldModel.chunks[neighbourChunkPos];
 
             if (neighbourChunk != null && neighbourChunk.chunkData[neighbourBlockIndex] == BlockType.Air)
             {
                 // flow
                 Debug.Log($"Flow");
-                neighbourChunk.chunkData[neighbourBlockIndex] = worldBuilder.chunks[chunkPosition].chunkData[Chunk.ToBlockIndex(blockPosition)];
+                neighbourChunk.chunkData[neighbourBlockIndex] = _worldModel.chunks[chunkPosition].chunkData[Chunk.ToBlockIndex(blockPosition)];
                 neighbourChunk.healthData[neighbourBlockIndex] = BlockType.Nocrack;
                 neighbourChunk.Redraw(worldBuilder.waterLevel);
                 StartCoroutine(HandleBlockDropping(neighbourChunk, neighbourBlockIndex, strength--));
@@ -157,7 +164,7 @@ namespace VoxelWorld
             Debug.Log($"Hide columns around {currentChunkColumnCoordinate.x}:{currentChunkColumnCoordinate.y}");
 
             //TODO Improvement: we don't need to iterate all columns, only the visible ones
-            foreach (Vector2Int column in worldBuilder.createdChunkColumns)
+            foreach (Vector2Int column in _worldModel.createdChunkColumns)
             {
                 if ((column - currentChunkColumnCoordinate).magnitude > worldBuilder.chunkColumnDrawRadius * WorldBuilder.chunkDimensions.x)
                 {
@@ -175,10 +182,10 @@ namespace VoxelWorld
             for (int y = 0; y < worldBuilder.worldDimensions.y; y++)
             {
                 Vector3Int pos = new Vector3Int(worldX, y * WorldBuilder.chunkDimensions.y, worldZ);
-                if (worldBuilder.createdChunks.Contains(pos))
+                if (_worldModel.createdChunks.Contains(pos))
                 {
-                    worldBuilder.chunks[pos].meshRendererSolidBlocks.enabled = false;
-                    worldBuilder.chunks[pos].meshRendererFluidBlocks.enabled = false;
+                    _worldModel.chunks[pos].meshRendererSolidBlocks.enabled = false;
+                    _worldModel.chunks[pos].meshRendererFluidBlocks.enabled = false;
                 }
             }
         }

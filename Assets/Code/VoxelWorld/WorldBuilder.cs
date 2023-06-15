@@ -13,6 +13,11 @@ namespace VoxelWorld
     /// </summary>
     public class WorldBuilder : MonoBehaviour
     {
+        //Events
+        public UnityEvent<int> worldBuildingStarted;
+        public UnityEvent<int> worldBuildingUpdated;
+        public UnityEvent worldBuildingEnded;
+
         //TODO configuration in a scriptable object
         [Header("World Configuration")]
 
@@ -60,30 +65,20 @@ namespace VoxelWorld
         [SerializeField]
         private WorldUpdater worldUpdater;
 
-        //Events
-        public UnityEvent<int> worldBuildingStarted;
-        public UnityEvent<int> worldBuildingUpdated;
-        public UnityEvent worldBuildingEnded;
-
-        /// keeps track of which chunks have been created already
-        public HashSet<Vector3Int> createdChunks = new HashSet<Vector3Int>();
-
-        /// keeps track of the created chunk columns, position in world coordinates
-        public HashSet<Vector2Int> createdChunkColumns = new HashSet<Vector2Int>();
-
-        /// lookup for all created chunks
-        public Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
-
         private System.Diagnostics.Stopwatch stopwatchBuildWorld = new System.Diagnostics.Stopwatch();
-        private int createdCompletelyNewChunksCount;
         private System.Diagnostics.Stopwatch stopwatchChunkGeneration = new System.Diagnostics.Stopwatch();
+        private int createdCompletelyNewChunksCount;
         private List<long> chunkGenerationTimes = new List<long>();
 
         private int _initialChunkColumnCount;
 
+        private WorldDataModel _worldModel;
+
         // Use this for initialization
         private void Start()
         {
+            _worldModel = WorldDataModel.Instance;
+
             surfaceSettings = new PerlinSettings(surface.heightScale, surface.scale, surface.octaves, surface.heightOffset, surface.probability);
             stoneSettings = new PerlinSettings(stone.heightScale, stone.scale, stone.octaves, stone.heightOffset, stone.probability);
             diamondTopSettings = new PerlinSettings(diamondTop.heightScale, diamondTop.scale, diamondTop.octaves, diamondTop.heightOffset, diamondTop.probability);
@@ -117,7 +112,7 @@ namespace VoxelWorld
             for (int gridY = 0; gridY < worldDimensions.y; gridY++)
             {
                 Vector3Int chunkCoordinates = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
-                if (!createdChunks.Contains(chunkCoordinates))
+                if (!_worldModel.createdChunks.Contains(chunkCoordinates))
                 {
                     stopwatchChunkGeneration.Start();
 
@@ -128,11 +123,11 @@ namespace VoxelWorld
                     stopwatchChunkGeneration.Reset();
                 }
 
-                chunks[chunkCoordinates].meshRendererSolidBlocks.enabled = meshEnabled;
-                chunks[chunkCoordinates].meshRendererFluidBlocks.enabled = meshEnabled;
+                _worldModel.chunks[chunkCoordinates].meshRendererSolidBlocks.enabled = meshEnabled;
+                _worldModel.chunks[chunkCoordinates].meshRendererFluidBlocks.enabled = meshEnabled;
             }
 
-            createdChunkColumns.Add(new Vector2Int(worldX, worldZ));
+            _worldModel.createdChunkColumns.Add(new Vector2Int(worldX, worldZ));
         }
 
         private void BuildChunk(Vector3Int coordinates)
@@ -140,8 +135,8 @@ namespace VoxelWorld
             GameObject chunkGO = Instantiate(chunkPrefab);
             Chunk chunk = chunkGO.GetComponent<Chunk>();
             chunk.CreateMeshes(chunkDimensions, coordinates, waterLevel);
-            createdChunks.Add(coordinates);
-            chunks.Add(coordinates, chunk);
+            _worldModel.createdChunks.Add(coordinates);
+            _worldModel.chunks.Add(coordinates, chunk);
         }
 
         private void CalculateInitialChunkColumnCount()
@@ -171,7 +166,8 @@ namespace VoxelWorld
 
         private IEnumerator BuildWorldFromSaveFile()
         {
-            WorldData worldData = FileSaver.Load(this);
+            Debug.Log($"Building World from file started");
+            SaveFileData worldData = FileSaver.Load(this);
             if (worldData == null)
             {
                 StartCoroutine(BuildNewWorld());
@@ -179,20 +175,20 @@ namespace VoxelWorld
             }
 
             // populate runtime data structures with data from file
-            createdChunks.Clear();
             for (int i = 0; i < worldData.createdChunksCoordinates.Length; i += 3)
+            _worldModel.createdChunks.Clear();
             {
                 //TODO exclude invisible chunks
 
 
-                createdChunks.Add(new Vector3Int(
+                    _worldModel.createdChunks.Add(new Vector3Int(
                     worldData.createdChunksCoordinates[i],
                     worldData.createdChunksCoordinates[i + 1],
                     worldData.createdChunksCoordinates[i + 2]));
             }
 
-            createdChunkColumns.Clear();
             for (int i = 0; i < worldData.chunkColumnValues.Length; i += 2)
+            _worldModel.createdChunkColumns.Clear();
             {
                 //TODO exclude invisible columns
 
@@ -206,7 +202,7 @@ namespace VoxelWorld
             int blockCount = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
             int chunkDataIndex = 0;
             int chunkIndex = 0;
-            foreach (Vector3Int chunkPos in createdChunks)
+            foreach (Vector3Int chunkPos in _worldModel.createdChunks)
             {
                 GameObject chunkGO = Instantiate(chunkPrefab);
                 chunkGO.name = $"Chunk_{chunkPos.x}_{chunkPos.y}_{chunkPos.z}";
@@ -217,14 +213,13 @@ namespace VoxelWorld
 
                 for (int i = 0; i < blockCount; i++)
                 {
-                    chunk.chunkData[i] = (BlockType)worldData.chunkData[chunkDataIndex];
+                    chunk.chunkData[i] = (BlockType)worldData.chunksData[chunkDataIndex];
                     chunk.healthData[i] = BlockType.Nocrack;
                     chunkDataIndex++;
                 }
 
                 chunk.CreateMeshes(chunkDimensions, chunkPos, waterLevel, false);
-                chunks.Add(chunkPos, chunk);
-                chunk.Redraw(waterLevel);
+                _worldModel.chunks.Add(chunkPos, chunk);
                 chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
                 chunk.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
                 chunkIndex++;
@@ -289,9 +284,9 @@ namespace VoxelWorld
             int stopX = chunkCoordinates.x + buildRadius;
             int startZ = chunkCoordinates.z + buildRadius;
             int stopZ = chunkCoordinates.z - buildRadius;
-            for (int z = startZ; z >= stopZ; z -= 10)
+            for (int z = startZ; z >= stopZ; z -= chunkDimensions.z)
             {
-                for (int x = startX; x <= stopX; x += 10)
+                for (int x = startX; x <= stopX; x += chunkDimensions.x)
                 {
                     Vector3Int possibleNewChunkCoordinate = new Vector3Int(x, chunkCoordinates.y, z);
                     if (Vector3Int.Distance(possibleNewChunkCoordinate, chunkCoordinates) <= buildRadius)
