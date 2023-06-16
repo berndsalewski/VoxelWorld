@@ -31,7 +31,7 @@ namespace VoxelWorld
             }
             BinaryFormatter bf = new BinaryFormatter();
             FileStream file = File.Open(fileName, FileMode.OpenOrCreate);
-            saveFile = new SaveFileData(worldModel.createdChunks, worldModel.createdChunkColumns, worldModel.chunks, player.position);
+            saveFile = new SaveFileData(worldModel.runtimeGeneratedChunks, worldModel.runtimeGeneratedChunkColumns, worldModel.runtimeGeneratedChunksLookup, player.position);
             bf.Serialize(file, saveFile);
             file.Close();
             Debug.Log($"Saving World to File: {fileName}");

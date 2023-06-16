@@ -9,14 +9,17 @@ namespace VoxelWorld
     /// </summary>
     public class WorldDataModel
     {
-        /// keeps track of which chunks have been created already, contains visible and invisible chunks
-        public HashSet<Vector3Int> createdChunks = new HashSet<Vector3Int>();
+        /// <summary>
+        /// runtime generated chunks
+        /// </summary>
+        public HashSet<Vector3Int> runtimeGeneratedChunks = new HashSet<Vector3Int>();
+
 
         /// keeps track of the created chunk columns, position in world coordinates
-        public HashSet<Vector2Int> createdChunkColumns = new HashSet<Vector2Int>();
+        public HashSet<Vector2Int> runtimeGeneratedChunkColumns = new HashSet<Vector2Int>();
 
         /// lookup for all created chunks
-        public Dictionary<Vector3Int, Chunk> chunks = new Dictionary<Vector3Int, Chunk>();
+        public Dictionary<Vector3Int, Chunk> runtimeGeneratedChunksLookup = new Dictionary<Vector3Int, Chunk>();
 
         private static WorldDataModel _instance;
 

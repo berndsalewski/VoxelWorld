@@ -112,22 +112,26 @@ namespace VoxelWorld
             for (int gridY = 0; gridY < worldDimensions.y; gridY++)
             {
                 Vector3Int chunkCoordinates = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
-                if (!_worldModel.createdChunks.Contains(chunkCoordinates))
+
+                // only create a chunk when it was not already created, otherwise just switch visibility
+
+                // TODO we have chunks now which have not been created but we have the data for them, so we dont want to
+                // create them by reading from the data
+                if (!_worldModel.runtimeGeneratedChunks.Contains(chunkCoordinates))
                 {
                     stopwatchChunkGeneration.Start();
 
                     BuildChunk(chunkCoordinates);
-                    
+
                     createdCompletelyNewChunksCount++;
                     chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
                     stopwatchChunkGeneration.Reset();
                 }
 
-                _worldModel.chunks[chunkCoordinates].meshRendererSolidBlocks.enabled = meshEnabled;
-                _worldModel.chunks[chunkCoordinates].meshRendererFluidBlocks.enabled = meshEnabled;
+                _worldModel.runtimeGeneratedChunksLookup[chunkCoordinates].meshRendererSolidBlocks.enabled = meshEnabled;
             }
 
-            _worldModel.createdChunkColumns.Add(new Vector2Int(worldX, worldZ));
+            _worldModel.runtimeGeneratedChunkColumns.Add(new Vector2Int(worldX, worldZ));
         }
 
         private void BuildChunk(Vector3Int coordinates)
@@ -135,8 +139,8 @@ namespace VoxelWorld
             GameObject chunkGO = Instantiate(chunkPrefab);
             Chunk chunk = chunkGO.GetComponent<Chunk>();
             chunk.CreateMeshes(chunkDimensions, coordinates, waterLevel);
-            _worldModel.createdChunks.Add(coordinates);
-            _worldModel.chunks.Add(coordinates, chunk);
+            _worldModel.runtimeGeneratedChunks.Add(coordinates);
+            _worldModel.runtimeGeneratedChunksLookup.Add(coordinates, chunk);
         }
 
         private void CalculateInitialChunkColumnCount()
@@ -174,35 +178,16 @@ namespace VoxelWorld
                 yield break;
             }
 
-            // populate runtime data structures with data from file
-            for (int i = 0; i < worldData.createdChunksCoordinates.Length; i += 3)
-            _worldModel.createdChunks.Clear();
-            {
-                //TODO exclude invisible chunks
 
-
-                    _worldModel.createdChunks.Add(new Vector3Int(
-                    worldData.createdChunksCoordinates[i],
-                    worldData.createdChunksCoordinates[i + 1],
-                    worldData.createdChunksCoordinates[i + 2]));
-            }
-
-            for (int i = 0; i < worldData.chunkColumnValues.Length; i += 2)
-            _worldModel.createdChunkColumns.Clear();
-            {
-                //TODO exclude invisible columns
-
-                createdChunkColumns.Add(new Vector2Int(
-                    worldData.chunkColumnValues[i],
-                    worldData.chunkColumnValues[i + 1]));
-            }
+            PopulateGeneratedChunks(worldData, out List<int> createdChunkIndices);
+            PopulateGeneratedChunkColumns(worldData);
 
             worldBuildingStarted.Invoke(_initialChunkColumnCount * 3);
 
             int blockCount = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
             int chunkDataIndex = 0;
-            int chunkIndex = 0;
-            foreach (Vector3Int chunkPos in _worldModel.createdChunks)
+            int index = 0;
+            foreach (Vector3Int chunkPos in _worldModel.runtimeGeneratedChunks)
             {
                 GameObject chunkGO = Instantiate(chunkPrefab);
                 chunkGO.name = $"Chunk_{chunkPos.x}_{chunkPos.y}_{chunkPos.z}";
@@ -211,6 +196,7 @@ namespace VoxelWorld
                 chunk.chunkData = new BlockType[blockCount];
                 chunk.healthData = new BlockType[blockCount];
 
+                chunkDataIndex = createdChunkIndices[index] * blockCount;
                 for (int i = 0; i < blockCount; i++)
                 {
                     chunk.chunkData[i] = (BlockType)worldData.chunksData[chunkDataIndex];
@@ -219,10 +205,12 @@ namespace VoxelWorld
                 }
 
                 chunk.CreateMeshes(chunkDimensions, chunkPos, waterLevel, false);
-                _worldModel.chunks.Add(chunkPos, chunk);
-                chunk.meshRendererSolidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
-                chunk.meshRendererFluidBlocks.enabled = worldData.chunkVisibility[chunkIndex];
-                chunkIndex++;
+                _worldModel.runtimeGeneratedChunksLookup.Add(chunkPos, chunk);
+
+                chunk.meshRendererSolidBlocks.enabled = true;
+                chunk.meshRendererFluidBlocks.enabled = true;
+
+                index++;
                 worldBuildingUpdated.Invoke(1);
                 yield return null;
             }
@@ -235,6 +223,46 @@ namespace VoxelWorld
 
             StartCoroutine(worldUpdater.BuildQueueProcessor());
             StartCoroutine(worldUpdater.UpdateWorldMonitor());
+            //StartCoroutine(BuildExtraWorld());//TODO fix and enable this at a later point
+        }
+
+        private void PopulateGeneratedChunkColumns(SaveFileData worldData)
+        {
+            _worldModel.runtimeGeneratedChunkColumns.Clear();
+            int index = 0;
+            for (int i = 0; i < worldData.chunkColumns.Length; i += 2)
+            {
+                if (worldData.chunkVisibility[index] == true)
+                {
+                    _worldModel.runtimeGeneratedChunkColumns.Add(new Vector2Int(
+                        worldData.chunkColumns[i],
+                        worldData.chunkColumns[i + 1]));
+                }
+
+                index += 3;
+            }
+        }
+
+        private void PopulateGeneratedChunks(SaveFileData worldData, out List<int> createdChunkIndices)
+        {
+            // store the created chunks indices for later lookup of their data 
+            createdChunkIndices = new List<int>();
+            // populate runtime data structures with data from file
+            _worldModel.runtimeGeneratedChunks.Clear();
+            int index = 0;
+            for (int i = 0; i < worldData.chunkCoordinates.Length; i += 3)
+            {
+                if (worldData.chunkVisibility[index] == true)
+                {
+                    _worldModel.runtimeGeneratedChunks.Add(new Vector3Int(
+                            worldData.chunkCoordinates[i],
+                            worldData.chunkCoordinates[i + 1],
+                            worldData.chunkCoordinates[i + 2]));
+                    createdChunkIndices.Add(index);
+                }
+
+                index++;
+            }
         }
 
         /// <summary>

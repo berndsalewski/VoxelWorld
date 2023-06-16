@@ -11,12 +11,12 @@ namespace VoxelWorld
         /// <summary>
         /// coordinates of all created chunks, serialized Vector3Int
         /// </summary>
-        public int[] createdChunksCoordinates;
+        public int[] chunkCoordinates;
 
         /// <summary>
         /// coordinates of all created chunk columns, serialized Vector2Int
         /// </summary>
-        public int[] createdChunkColumns;
+        public int[] chunkColumns;
 
         /// <summary>
         /// chunk data for all created chunks
@@ -34,41 +34,41 @@ namespace VoxelWorld
 
         public SaveFileData() { }
 
-        public SaveFileData(HashSet<Vector3Int> createdChunks, HashSet<Vector2Int> createdChunkColumns, Dictionary<Vector3Int, Chunk> chunks, Vector3 playerPosition)
+        public SaveFileData(HashSet<Vector3Int> allChunks, HashSet<Vector2Int> allChunkColumns, Dictionary<Vector3Int, Chunk> allChunksLookup, Vector3 playerPosition)
         {
-            createdChunksCoordinates = new int[createdChunks.Count * 3];
+            chunkCoordinates = new int[allChunks.Count * 3];
             int i = 0;
-            foreach (Vector3Int chunkPosition in createdChunks)
+            foreach (Vector3Int chunkPosition in allChunks)
             {
-                createdChunksCoordinates[i] = chunkPosition.x;
-                createdChunksCoordinates[i + 1] = chunkPosition.y;
-                createdChunksCoordinates[i + 2] = chunkPosition.z;
+                chunkCoordinates[i] = chunkPosition.x;
+                chunkCoordinates[i + 1] = chunkPosition.y;
+                chunkCoordinates[i + 2] = chunkPosition.z;
                 i += 3;
             }
 
-            this.createdChunkColumns = new int[createdChunkColumns.Count * 2];
+            this.chunkColumns = new int[allChunkColumns.Count * 2];
             i = 0;
-            foreach (Vector3Int chunkColumnPosition in createdChunkColumns)
+            foreach (Vector3Int chunkColumnPosition in allChunkColumns)
             {
-                this.createdChunkColumns[i] = chunkColumnPosition.x;
-                this.createdChunkColumns[i + 1] = chunkColumnPosition.y;
+                this.chunkColumns[i] = chunkColumnPosition.x;
+                this.chunkColumns[i + 1] = chunkColumnPosition.y;
                 i += 2;
             }
 
-            chunksData = new int[chunks.Count * WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.z];
-            chunkVisibility = new bool[chunks.Count];
-            int vIndex = 0;
+            chunksData = new int[allChunksLookup.Count * WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.z];
+            chunkVisibility = new bool[allChunksLookup.Count];
+            int visibilityIndex = 0;
             i = 0;
-            foreach (KeyValuePair<Vector3Int, Chunk> item in chunks)
+            foreach (KeyValuePair<Vector3Int, Chunk> chunk in allChunksLookup)
             {
-                foreach (BlockType blockType in item.Value.chunkData)
+                foreach (BlockType blockType in chunk.Value.chunkData)
                 {
 
                     chunksData[i] = (int)blockType;
                     i++;
                 }
-                chunkVisibility[vIndex] = item.Value.meshRendererSolidBlocks.enabled;
-                vIndex++;
+                chunkVisibility[visibilityIndex] = chunk.Value.meshRendererSolidBlocks.enabled;
+                visibilityIndex++;
             }
 
             playerPositionX = (int)playerPosition.x + Block.HALF_BLOCK_SIZE;
