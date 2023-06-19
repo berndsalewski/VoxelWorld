@@ -98,6 +98,14 @@ namespace VoxelWorld
         }
 
         /// <summary>
+        /// hooked up to UI Button
+        /// </summary>
+        public void SaveWorld()
+        {
+            FileSaver.Save(worldDimensions, player);
+        }
+
+        /// <summary>
         /// creates a new column of chunks at the given coordinate, which corresponds with world position currently
         /// skips creation if a chunk already exist at the position but will set its visibility to <paramref name="meshEnabled"/>
         /// </summary>
@@ -110,24 +118,28 @@ namespace VoxelWorld
 
             for (int gridY = 0; gridY < worldDimensions.y; gridY++)
             {
-                Vector3Int chunkCoordinates = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
+                Vector3Int chunkCoordinate = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
 
                 // only create a chunk when it was not already created, otherwise just switch visibility
-
-                // TODO we have chunks now which have not been created but we have the data for them, so we dont want to
-                // create them by reading from the data
-                if (!_worldModel.IsChunkActive(chunkCoordinates))
+                if (!_worldModel.IsChunkActive(chunkCoordinate))
                 {
-                    stopwatchChunkGeneration.Start();
+                    if(!_worldModel.IsChunkInCache(chunkCoordinate))
+                    {
+                        stopwatchChunkGeneration.Start();
 
-                    BuildChunk(chunkCoordinates);
+                        BuildChunk(chunkCoordinate);
 
-                    createdCompletelyNewChunksCount++;
-                    chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
-                    stopwatchChunkGeneration.Reset();
+                        createdCompletelyNewChunksCount++;
+                        chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
+                        stopwatchChunkGeneration.Reset();
+                    }
+                    else
+                    {
+                        BuildChunkFromCachedData(chunkCoordinate);
+                    }
                 }
 
-                _worldModel.GetChunk(chunkCoordinates).meshRendererSolidBlocks.enabled = meshEnabled;
+                _worldModel.GetChunk(chunkCoordinate).meshRendererSolidBlocks.enabled = meshEnabled;
             }
 
             _worldModel.AddChunkColumn(new Vector2Int(worldX, worldZ));
@@ -142,6 +154,25 @@ namespace VoxelWorld
             _worldModel.AddChunkToLookup(coordinate, chunk);
             _worldModel.AddChunkToCache(coordinate);
             _worldModel.AddChunkDataToLookupCache(coordinate, chunk.chunkData);
+        }
+
+        private void BuildChunkFromCachedData(Vector3Int coordinate)
+        {
+            GameObject chunkGO = Instantiate(chunkPrefab);
+            Chunk chunk = chunkGO.GetComponent<Chunk>();
+
+            BlockType[] chunkData = _worldModel.chunksDataCacheLookup[coordinate];
+            BlockType[] healthData = new BlockType[WorldBuilder.blockCountPerChunk];
+            for (int i = 0; i < healthData.Length; i++)
+            {
+                healthData[i] = BlockType.Nocrack;
+            }
+            chunk.chunkData = chunkData;
+            chunk.healthData = healthData;
+
+            chunk.CreateMeshes(chunkDimensions, coordinate, waterLevel, false);
+            _worldModel.AddChunk(coordinate);
+            _worldModel.AddChunkToLookup(coordinate, chunk);
         }
 
         private void CalculateInitialChunkColumnCount()
@@ -159,14 +190,6 @@ namespace VoxelWorld
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// hooked up to UI Button
-        /// </summary>
-        public void SaveWorld()
-        {
-            FileSaver.Save(worldDimensions, player);
         }
 
         private IEnumerator BuildWorldFromSaveFile()

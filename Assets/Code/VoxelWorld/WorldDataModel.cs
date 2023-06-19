@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -146,6 +147,11 @@ namespace VoxelWorld
             }
 
             Debug.Log($"{output}");
+        }
+
+        internal bool IsChunkInCache(Vector3Int chunkCoordinate)
+        {
+            return _chunksCache.Contains(chunkCoordinate) && _chunksDataCacheLookup.ContainsKey(chunkCoordinate);
         }
     }
 }
