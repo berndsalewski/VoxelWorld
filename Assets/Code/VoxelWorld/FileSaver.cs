@@ -1,15 +1,14 @@
-using System.Collections.Generic;
-using UnityEngine;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
-using System;
+using System.Runtime.Serialization.Formatters.Binary;
+using UnityEngine;
 
 namespace VoxelWorld
 {
     public static class FileSaver
     {
         private static SaveFileData saveFile;
-        static string BuildFileName(Vector3 worldDimensions)
+
+        static string BuildSaveFileName(Vector3 worldDimensions)
         {
             return Application.persistentDataPath
                 + "/savedata/World_"
@@ -21,36 +20,40 @@ namespace VoxelWorld
                 + worldDimensions.z + ".dat";
         }
 
-        public static void Save(WorldBuilder worldBuilder, Player player)
+        public static void Save(Vector3Int worldDimensions, Player player)
         {
             WorldDataModel worldModel = WorldDataModel.Instance;
-            string fileName = BuildFileName(worldBuilder.worldDimensions);
+            string fileName = BuildSaveFileName(worldDimensions);
             if (!File.Exists(fileName))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(fileName));
             }
             BinaryFormatter bf = new BinaryFormatter();
             FileStream file = File.Open(fileName, FileMode.OpenOrCreate);
-            saveFile = new SaveFileData(worldModel.runtimeGeneratedChunks, worldModel.runtimeGeneratedChunkColumns, worldModel.runtimeGeneratedChunksLookup, player.position);
+            saveFile = new SaveFileData(
+                worldModel,
+                player.position);
+
             bf.Serialize(file, saveFile);
             file.Close();
             Debug.Log($"Saving World to File: {fileName}");
         }
 
-        public static SaveFileData Load(WorldBuilder world)
+        public static SaveFileData Load(Vector3Int worldDimensions)
         {
-            string fileName = BuildFileName(world.worldDimensions);
+            string fileName = BuildSaveFileName(worldDimensions);
             if (File.Exists(fileName))
             {
                 BinaryFormatter bf = new BinaryFormatter();
                 FileStream file = File.Open(fileName, FileMode.Open);
                 saveFile = new SaveFileData();
                 saveFile = (SaveFileData)bf.Deserialize(file);
+
                 file.Close();
                 Debug.Log($"Loading World from File: {fileName}");
                 return saveFile;
             }
-            Debug.Log($"File not found");
+            Debug.LogError($"File not found");
             return null;
         }
     }

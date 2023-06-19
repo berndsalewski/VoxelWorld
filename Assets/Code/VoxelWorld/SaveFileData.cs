@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using UnityEngine;
-using VoxelWorld;
 
 namespace VoxelWorld
 {
@@ -34,11 +35,13 @@ namespace VoxelWorld
 
         public SaveFileData() { }
 
-        public SaveFileData(HashSet<Vector3Int> allChunks, HashSet<Vector2Int> allChunkColumns, Dictionary<Vector3Int, Chunk> allChunksLookup, Vector3 playerPosition)
+        public SaveFileData(
+            WorldDataModel worldModel,
+            Vector3 playerPosition)
         {
-            chunkCoordinates = new int[allChunks.Count * 3];
+            chunkCoordinates = new int[worldModel.chunksCache.Count * 3];
             int i = 0;
-            foreach (Vector3Int chunkPosition in allChunks)
+            foreach (Vector3Int chunkPosition in worldModel.chunksCache)
             {
                 chunkCoordinates[i] = chunkPosition.x;
                 chunkCoordinates[i + 1] = chunkPosition.y;
@@ -46,34 +49,70 @@ namespace VoxelWorld
                 i += 3;
             }
 
-            this.chunkColumns = new int[allChunkColumns.Count * 2];
+            chunkColumns = new int[worldModel.chunkColumnsCache.Count * 2];
             i = 0;
-            foreach (Vector3Int chunkColumnPosition in allChunkColumns)
+            foreach (Vector3Int chunkColumnPosition in worldModel.chunkColumnsCache)
             {
-                this.chunkColumns[i] = chunkColumnPosition.x;
-                this.chunkColumns[i + 1] = chunkColumnPosition.y;
+                chunkColumns[i] = chunkColumnPosition.x;
+                chunkColumns[i + 1] = chunkColumnPosition.y;
                 i += 2;
             }
 
-            chunksData = new int[allChunksLookup.Count * WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y * WorldBuilder.chunkDimensions.z];
-            chunkVisibility = new bool[allChunksLookup.Count];
+            chunksData = new int[worldModel.chunksDataCacheLookup.Count * WorldBuilder.blockCountPerChunk];
+            chunkVisibility = new bool[worldModel.chunksDataCacheLookup.Count];
             int visibilityIndex = 0;
-            i = 0;
-            foreach (KeyValuePair<Vector3Int, Chunk> chunk in allChunksLookup)
+            int chunkDataIndex = 0;
+            foreach (KeyValuePair<Vector3Int, BlockType[]> chunkData in worldModel.chunksDataCacheLookup)
             {
-                foreach (BlockType blockType in chunk.Value.chunkData)
+                foreach (BlockType blockType in chunkData.Value)
                 {
-
-                    chunksData[i] = (int)blockType;
-                    i++;
+                    chunksData[chunkDataIndex] = (int)blockType;
+                    chunkDataIndex++;
                 }
-                chunkVisibility[visibilityIndex] = chunk.Value.meshRendererSolidBlocks.enabled;
+
+                if (worldModel.IsChunkActive(chunkData.Key))
+                {
+                    Chunk chunk = worldModel.GetChunk(chunkData.Key);
+                    chunkVisibility[visibilityIndex] = chunk.meshRendererSolidBlocks.enabled;
+                }
+
                 visibilityIndex++;
             }
 
             playerPositionX = (int)playerPosition.x + Block.HALF_BLOCK_SIZE;
             playerPositionY = (int)playerPosition.y + Block.HALF_BLOCK_SIZE;
             playerPositionZ = (int)playerPosition.z + Block.HALF_BLOCK_SIZE;
+        }
+
+        /// <summary>
+        /// dumps the content of the save file to the console for debugging purposes
+        /// </summary>
+        public void DumpToConsole()
+        {
+            StringBuilder output = new StringBuilder();
+
+            output.Append($"cData: {chunksData.Length}:{chunksData.Sum()} ");
+            output.Append($"cCoordinates: {chunkCoordinates.Length}:{chunkCoordinates.Sum()} ");
+            output.Append($"cColumns: {chunkColumns.Length}:{chunkColumns.Sum()} ");
+            output.AppendLine("\ncolumns");
+            for (int i = 0; i < chunkColumns.Length; i++)
+            {
+                output.Append(chunkColumns[i] + ",");
+            }
+
+            output.AppendLine("\nvisibility");
+            for (int i = 0; i < chunkVisibility.Length; i++)
+            {
+                output.Append($"{chunkVisibility[i]},");
+            }
+
+            output.AppendLine("\nchunks");
+            for (int i = 0; i < chunkCoordinates.Length; i++)
+            {
+                output.Append($"{chunkCoordinates[i]},");
+            }
+
+            Debug.Log(output);
         }
     }
 }

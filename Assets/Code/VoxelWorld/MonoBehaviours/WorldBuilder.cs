@@ -1,13 +1,8 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using UnityEngine.Events;
-using System.Transactions;
-using JetBrains.Annotations;
-using System.Reflection;
 
 namespace VoxelWorld
 {
@@ -233,8 +228,6 @@ namespace VoxelWorld
             mainCamera.SetActive(false);
             player.SetActive(true);
             worldUpdater.lastPlayerPositionTriggeringNewChunks = Vector3Int.CeilToInt(player.position);
-
-            _worldModel.DumpModel();
 
             StartCoroutine(worldUpdater.BuildQueueProcessor());
             StartCoroutine(worldUpdater.UpdateWorldMonitor());
