@@ -74,11 +74,11 @@ crashlytics-build.properties
 
 # MacCrap
 .DS_Store
-todo.txt
 
 # own plugins
-Assets/ConsolePro*
+Assets/Plugins/ConsolePro*
 
 # temp stuff
-Assets/Scenes/TestScenarios.unity*
-Assets/Code/VoxelWorld/TestScenarios.cs
+Assets/Experiments/
+Assets/Experiments.meta
+todo.txt
