@@ -1,6 +1,6 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace VoxelWorld
 {
@@ -42,7 +42,7 @@ namespace VoxelWorld
             while (true)
             {
                 Vector3Int thisBlockPos = Chunk.ToBlockCoordinates(blockIndex);
-                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinates, thisBlockPos + Vector3Int.down);
+                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinate, thisBlockPos + Vector3Int.down);
                 int belowBlockIndex = Chunk.ToBlockIndex(adjustedBelowBlockPos);
                 Chunk chunkOfBelowBlock = _worldModel.GetChunk(chunkPosOfBelowBlock);
                 if (chunkOfBelowBlock?.chunkData[belowBlockIndex] == BlockType.Air)
@@ -55,7 +55,7 @@ namespace VoxelWorld
 
                     // test if there is now a droppable block above this new air block
                     Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
-                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinates, aboveBlock);
+                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinate, aboveBlock);
                     int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                     StartCoroutine(HandleBlockDropping(_worldModel.GetChunk(adjustedChunkPos), aboveBlockIndex));
 
@@ -72,10 +72,10 @@ namespace VoxelWorld
                 }
                 else if (MeshUtils.canFlow.Contains(chunk.chunkData[blockIndex]))
                 {
-                    HandleBlockFlowing(thisBlockPos, chunk.coordinates, Vector3Int.left, strength);
-                    HandleBlockFlowing(thisBlockPos, chunk.coordinates, Vector3Int.right, strength);
-                    HandleBlockFlowing(thisBlockPos, chunk.coordinates, Vector3Int.forward, strength);
-                    HandleBlockFlowing(thisBlockPos, chunk.coordinates, Vector3Int.back, strength);
+                    HandleBlockFlowing(thisBlockPos, chunk.coordinate, Vector3Int.left, strength);
+                    HandleBlockFlowing(thisBlockPos, chunk.coordinate, Vector3Int.right, strength);
+                    HandleBlockFlowing(thisBlockPos, chunk.coordinate, Vector3Int.forward, strength);
+                    HandleBlockFlowing(thisBlockPos, chunk.coordinate, Vector3Int.back, strength);
                     yield break;
                 }
                 else
@@ -161,8 +161,6 @@ namespace VoxelWorld
         /// <param name="currentChunkColumnCoordinate">the chunk column coordinate of the current player position</param> 
         public IEnumerator HideChunkColumns(Vector2Int currentChunkColumnCoordinate)
         {
-            Debug.Log($"Hide columns around {currentChunkColumnCoordinate.x}:{currentChunkColumnCoordinate.y}");
-
             //TODO Improvement: we don't need to iterate all columns, only the visible ones
             foreach (Vector2Int column in _worldModel.chunkColumns)
             {

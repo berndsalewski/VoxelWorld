@@ -1,10 +1,8 @@
-﻿using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace VoxelWorld
 {
-
     /// <summary>
     /// creates a mesh for a block, built out of Quads,
     /// the dimensions of a block are 1x1x1 in Unity units
@@ -23,16 +21,23 @@ namespace VoxelWorld
 
         private Chunk parentChunk;
 
-        public Block(Vector3Int localCoordinates, Vector3Int chunkCoordinates, BlockType blockType, Chunk parent, BlockType healthType)
+        /// <summary>
+        /// will create a block, made out of 6 quads (unless quads are not visible), merged into one mesh
+        /// </summary>
+        /// <param name="localCoordinates"></param>
+        /// <param name="chunkCoordinates"></param>
+        /// <param name="blockType"></param>
+        /// <param name="parent"></param>
+        /// <param name="healthType"></param>
+        public Block(Chunk parent, Vector3Int localCoordinates, Vector3Int chunkCoordinates, BlockType blockType, BlockType healthType)
         {
-
             if (blockType == BlockType.Air)
             {
                 return;
             }
 
             parentChunk = parent;
-            
+
             Vector3 worldPosition = localCoordinates + chunkCoordinates + blockOffset;
 
             List<Quad> quads = new List<Quad>();
@@ -79,7 +84,7 @@ namespace VoxelWorld
                 m++;
             }
 
-            mesh = MeshUtils.MergeMeshes(sideMeshes);
+            mesh = MeshUtils.MergeMeshesWithJobSystem(sideMeshes);
         }
 
         private bool MustDrawQuad(Vector3Int neighbourBlockCoordinates, BlockType ownBlockType)
@@ -114,9 +119,9 @@ namespace VoxelWorld
 
         private bool IsOutsideOfChunk(Vector3Int coordinates)
         {
-            return (coordinates.x < 0 || coordinates.x >= parentChunk.xBlockCount
-                || coordinates.y < 0 || coordinates.y >= parentChunk.yBlockCount
-                || coordinates.z < 0 || coordinates.z >= parentChunk.zBlockCount);
+            return (coordinates.x < 0 || coordinates.x >= WorldBuilder.chunkDimensions.x
+                || coordinates.y < 0 || coordinates.y >= WorldBuilder.chunkDimensions.y
+                || coordinates.z < 0 || coordinates.z >= WorldBuilder.chunkDimensions.z);
         }
     }
 }

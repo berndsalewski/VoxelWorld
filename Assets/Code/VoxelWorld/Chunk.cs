@@ -4,8 +4,11 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
+using MeshData = UnityEngine.Mesh.MeshData;
+using MeshDataArray = UnityEngine.Mesh.MeshDataArray;
 
 namespace VoxelWorld
 {
@@ -19,18 +22,12 @@ namespace VoxelWorld
         public Material fluid;
 
         [HideInInspector]
-        public int xBlockCount = 1;
-        [HideInInspector]
-        public int yBlockCount = 1;
-        [HideInInspector]
-        public int zBlockCount = 1;
-
-        [HideInInspector]
-        public Vector3Int coordinates;
+        public Vector3Int coordinate;
 
         /// 3-dimensional array, x,y,z, relative coordinates within a chunk for a block
         public Block[,,] blocks;
 
+        //TODO move this out of mononehaviour into ChunkData
         [HideInInspector]
         public BlockType[] chunkData;
         /// the current health (visual) of the block at the index
@@ -77,7 +74,7 @@ namespace VoxelWorld
         /// </summary>
         private void GenerateChunkData(int waterLevel)
         {
-            int blockCount = xBlockCount * yBlockCount * zBlockCount;
+            int blockCount = WorldBuilder.blockCountPerChunk;
             chunkData = new BlockType[blockCount];
             healthData = new BlockType[blockCount];
             NativeArray<BlockType> blockTypes = new NativeArray<BlockType>(chunkData, Allocator.Persistent);
@@ -98,9 +95,9 @@ namespace VoxelWorld
             {
                 cData = blockTypes,
                 hData = healthTypes,
-                width = xBlockCount,
-                height = yBlockCount,
-                location = coordinates,
+                width = WorldBuilder.chunkDimensions.x,
+                height = WorldBuilder.chunkDimensions.y,
+                chunkCoordinate = coordinate,
                 randoms = RandomArray,
                 waterLevel = waterLevel
             };
@@ -166,25 +163,31 @@ namespace VoxelWorld
             }
         }
 
+        ProfilerMarker profilerMarkerRunMergeBlockMeshesJob = new ProfilerMarker("MergeBlockMeshesJob");
+        ProfilerMarker profilerMarkerCreateBlockMeshes = new ProfilerMarker("CreateBlockMeshes");
+        ProfilerMarker profilerMarkerCreateSingleBlock = new ProfilerMarker("CreateSingleBlock");
         /// <summary>
-        /// creates a chunk of blocks, creates the actual geometry
+        /// creates a chunk of blocks, creates the actual meshes for every single block and merges them into 2 chunk meshes
         /// </summary>
-        public void CreateMeshes(Vector3Int chunkDimensions, Vector3Int chunkCoordinates, int waterLevel, bool generateChunkData = true)
+        public void CreateChunkMeshes(Vector3Int chunkCoordinate, int waterLevel, bool generateChunkData = true)
         {
-            coordinates = chunkCoordinates;
-            xBlockCount = chunkDimensions.x;
-            yBlockCount = chunkDimensions.y;
-            zBlockCount = chunkDimensions.z;
-            
+            coordinate = chunkCoordinate;
+
             MeshFilter meshFilterSolid;
             MeshRenderer meshRendererSolid;
             MeshFilter meshFilterFluid;
             MeshRenderer meshRendererFluid;
 
+            if (generateChunkData)
+            {
+                GenerateChunkData(waterLevel);
+            }
+
+            // create required gameobject and components if not already present
             if (solidMesh == null)
             {
                 solidMesh = new GameObject("Solid");
-                solidMesh.transform.parent = this.gameObject.transform;
+                solidMesh.transform.parent = gameObject.transform;
                 meshFilterSolid = solidMesh.AddComponent<MeshFilter>();
                 meshRendererSolid = solidMesh.AddComponent<MeshRenderer>();
                 meshRendererSolidBlocks = meshRendererSolid;
@@ -199,7 +202,7 @@ namespace VoxelWorld
             if (fluidMesh == null)
             {
                 fluidMesh = new GameObject("Fluid");
-                fluidMesh.transform.parent = this.gameObject.transform;
+                fluidMesh.transform.parent = gameObject.transform;
                 meshFilterFluid = fluidMesh.AddComponent<MeshFilter>();
                 meshRendererFluid = fluidMesh.AddComponent<MeshRenderer>();
                 fluidMesh.AddComponent<UVScroller>();
@@ -212,106 +215,131 @@ namespace VoxelWorld
                 DestroyImmediate(fluidMesh.GetComponent<Collider>());
             }
 
-            blocks = new Block[xBlockCount, yBlockCount, zBlockCount];
+            blocks = new Block[WorldBuilder.chunkDimensions.x, WorldBuilder.chunkDimensions.y, WorldBuilder.chunkDimensions.z];
 
-            if (generateChunkData)
-            {
-                GenerateChunkData(waterLevel);
-            }
-
+            // run this 2 times, 1. for the solid blocks 2. for the water blocks
             for (int pass = 0; pass < 2; pass++)
             {
-                var inputMeshes = new List<Mesh>();
-                int vertexStart = 0;
-                int triStart = 0;
-                int meshCount = xBlockCount * yBlockCount * zBlockCount;
-                int m = 0;
-                var job = new ProcessMeshDataJob();
-                job.vertexStart = new NativeArray<int>(meshCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                job.triStart = new NativeArray<int>(meshCount, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-
-
-                for (int z = 0; z < zBlockCount; z++)
+                var mergeBlockMeshesJob = new MergeBlockMeshesJob()
                 {
-                    for (int y = 0; y < yBlockCount; y++)
+                    vertexStartIndices = new NativeArray<int>(WorldBuilder.blockCountPerChunk, Allocator.TempJob, NativeArrayOptions.UninitializedMemory),
+                    trianglesStartIndices = new NativeArray<int>(WorldBuilder.blockCountPerChunk, Allocator.TempJob, NativeArrayOptions.UninitializedMemory)
+                };
+
+                var inputBlockMeshes = new List<Mesh>();
+                int vertexStartIndex = 0;
+                int trianglesStartIndex = 0;
+                int meshIndex = 0;
+
+                profilerMarkerCreateBlockMeshes.Begin();
+
+                //create the blocks and prepare data for the merge job
+                int yCount = WorldBuilder.chunkDimensions.y;
+                int xCount = WorldBuilder.chunkDimensions.x;
+                int zCount = WorldBuilder.chunkDimensions.z;
+                for (int z = 0; z < zCount; z++)
+                {
+                    for (int y = 0; y < yCount; y++)
                     {
-                        for (int x = 0; x < xBlockCount; x++)
+                        for (int x = 0; x < xCount; x++)
                         {
+
                             Vector3Int blockCoordinates = new Vector3Int(x, y, z);
-                            int blockIndex = Chunk.ToBlockIndex(blockCoordinates);
+                            int blockIndex = ToBlockIndex(blockCoordinates);
+
+                            profilerMarkerCreateSingleBlock.Begin();
 
                             // create a block and it's meshes
                             blocks[x, y, z] = new Block(
-                                blockCoordinates,
-                                this.coordinates,
-                                chunkData[blockIndex],
                                 this,
+                                blockCoordinates,
+                                coordinate,
+                                chunkData[blockIndex],
                                 healthData[blockIndex]);
 
+                            profilerMarkerCreateSingleBlock.End();
+
+                            // we create 2 meshes per chunk, one for the water blocks, because they have a different material which
+                            // handles transparency
                             bool isWater = MeshUtils.canFlow.Contains(chunkData[blockIndex]);
                             // add the mesh as input for the jobsystem
                             if (blocks[x, y, z].mesh != null
                                 && ((pass == 0 && !isWater) || (pass == 1 && isWater))
                             )
                             {
-                                inputMeshes.Add(blocks[x, y, z].mesh);
-                                // get the vertex count of the current block's mesh
-                                var vCount = blocks[x, y, z].mesh.vertexCount;
-                                // get the length of the index buffer of the current block's mesh
-                                var iCount = (int)(blocks[x, y, z].mesh.GetIndexCount(0));
+                                // add the current mesh to the job input data
+                                inputBlockMeshes.Add(blocks[x, y, z].mesh);
+
                                 // store the index of the first vertex of the current mesh in the job
-                                job.vertexStart[m] = vertexStart;
+                                mergeBlockMeshesJob.vertexStartIndices[meshIndex] = vertexStartIndex;
                                 // store the index of the first index buffer entry of the current mesh in the job
-                                job.triStart[m] = triStart;
-                                // move both values forward for the next mesh
-                                vertexStart += vCount;
-                                triStart += iCount;
+                                mergeBlockMeshesJob.trianglesStartIndices[meshIndex] = trianglesStartIndex;
+
+                                // move index forward to the start of the next mesh
+                                vertexStartIndex += blocks[x, y, z].mesh.vertexCount;
+                                // get the length of the index buffer / triangles of the current block's mesh
+                                int indexBufferLength = (int)blocks[x, y, z].mesh.GetIndexCount(0);
+                                trianglesStartIndex += indexBufferLength;
                                 // increment the loop/mesh counter
-                                m++;
+                                meshIndex++;
                             }
                         }
                     }
                 }
 
-                job.meshData = Mesh.AcquireReadOnlyMeshData(inputMeshes);
-                var outputMeshData = Mesh.AllocateWritableMeshData(1);
-                job.outputMesh = outputMeshData[0];
-                job.outputMesh.SetIndexBufferParams(triStart, IndexFormat.UInt32);
-                job.outputMesh.SetVertexBufferParams(vertexStart,
+                profilerMarkerCreateBlockMeshes.End();
+
+                // allocate memmory for job data
+                mergeBlockMeshesJob.inputMeshData = Mesh.AcquireReadOnlyMeshData(inputBlockMeshes);
+                MeshDataArray outputMeshData = Mesh.AllocateWritableMeshData(1);
+                mergeBlockMeshesJob.outputMesh = outputMeshData[0];
+
+                int totalIndexBufferCount = trianglesStartIndex;
+                int totalVertexBufferCount = vertexStartIndex;
+                mergeBlockMeshesJob.outputMesh.SetIndexBufferParams(totalIndexBufferCount, IndexFormat.UInt32);
+                mergeBlockMeshesJob.outputMesh.SetVertexBufferParams(totalVertexBufferCount,
                     new VertexAttributeDescriptor(VertexAttribute.Position),
                     new VertexAttributeDescriptor(VertexAttribute.Normal, stream: 1),
                     new VertexAttributeDescriptor(VertexAttribute.TexCoord0, stream: 2),
                     new VertexAttributeDescriptor(VertexAttribute.TexCoord1, stream: 3)
                     );
 
-                var handle = job.Schedule(inputMeshes.Count, 4);
-                var newMesh = new Mesh();
-                newMesh.name = $"Chunk_{this.coordinates.x}_{this.coordinates.y}_{this.coordinates.z}";
-                name = newMesh.name;
-                var sm = new SubMeshDescriptor(0, triStart, MeshTopology.Triangles);
-                sm.firstVertex = 0;
-                sm.vertexCount = vertexStart;
+
+                profilerMarkerRunMergeBlockMeshesJob.Begin();
+
+                var handle = mergeBlockMeshesJob.Schedule(inputBlockMeshes.Count, 4);
+
+                var mergedMesh = new Mesh();
+                mergedMesh.name = $"Chunk_{coordinate.x}_{coordinate.y}_{coordinate.z}";
+                name = mergedMesh.name;
+                var meshDescriptor = new SubMeshDescriptor(0, totalIndexBufferCount, MeshTopology.Triangles);
+                meshDescriptor.firstVertex = 0;
+                meshDescriptor.vertexCount = totalVertexBufferCount;
 
                 handle.Complete();
+                profilerMarkerRunMergeBlockMeshesJob.End();
 
-                job.outputMesh.subMeshCount = 1;
-                job.outputMesh.SetSubMesh(0, sm);
+                mergeBlockMeshesJob.outputMesh.subMeshCount = 1;
+                mergeBlockMeshesJob.outputMesh.SetSubMesh(0, meshDescriptor);
 
-                Mesh.ApplyAndDisposeWritableMeshData(outputMeshData, new[] { newMesh });
-                job.meshData.Dispose();
-                job.vertexStart.Dispose();
-                job.triStart.Dispose();
-                newMesh.RecalculateBounds();
+                Mesh.ApplyAndDisposeWritableMeshData(outputMeshData, new[] { mergedMesh });
+
+                // dispose all allocted job data
+                mergeBlockMeshesJob.inputMeshData.Dispose();
+                mergeBlockMeshesJob.vertexStartIndices.Dispose();
+                mergeBlockMeshesJob.trianglesStartIndices.Dispose();
+
+                mergedMesh.RecalculateBounds();
 
                 if (pass == 0)
                 {
-                    meshFilterSolid.mesh = newMesh;
+                    meshFilterSolid.mesh = mergedMesh;
                     MeshCollider collider = solidMesh.AddComponent<MeshCollider>();
                     collider.sharedMesh = meshFilterSolid.mesh;
                 }
                 else
                 {
-                    meshFilterFluid.mesh = newMesh;
+                    meshFilterFluid.mesh = mergedMesh;
                     MeshCollider collider = fluidMesh.AddComponent<MeshCollider>();
                     fluidMesh.layer = 4;
                     collider.sharedMesh = meshFilterFluid.mesh;
@@ -328,7 +356,7 @@ namespace VoxelWorld
             DestroyImmediate(GetComponent<MeshFilter>());
             DestroyImmediate(GetComponent<MeshRenderer>());
             DestroyImmediate(GetComponent<Collider>());
-            CreateMeshes(WorldBuilder.chunkDimensions, coordinates, waterLevel, false);
+            CreateChunkMeshes(coordinate, waterLevel, false);
         }
 
         /// <summary>
@@ -348,94 +376,103 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// merges a collection of input meshes into one output mesh
+        /// merges a collection of input meshes into one output mesh, in our case 1000 block meshes into 2 chunk meshes (solid & fluid)
+        /// job runs twice
         /// </summary>
         [BurstCompile]
-        struct ProcessMeshDataJob : IJobParallelFor
+        struct MergeBlockMeshesJob : IJobParallelFor
         {
-            [ReadOnly]
-            public Mesh.MeshDataArray meshData;
-            public Mesh.MeshData outputMesh;
-            public NativeArray<int> vertexStart;
-            public NativeArray<int> triStart;
+            // the single block meshes
+            [ReadOnly] public MeshDataArray inputMeshData;
+            public MeshData outputMesh;
+            public NativeArray<int> vertexStartIndices;
+            public NativeArray<int> trianglesStartIndices;
 
             public void Execute(int index)
             {
-                Mesh.MeshData data = meshData[index];
-                int vCount = data.vertexCount;
-                int vStart = vertexStart[index];
+                MeshData blockMeshData = inputMeshData[index];
+                int blockMeshVertexCount = blockMeshData.vertexCount;
+                int vertexStartIndex = vertexStartIndices[index];
 
-                var verts = new NativeArray<float3>(vCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                data.GetVertices(verts.Reinterpret<Vector3>());
+                // read mesh data for this block from input data
+                var vertices = new NativeArray<float3>(blockMeshVertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                blockMeshData.GetVertices(vertices.Reinterpret<Vector3>());
 
-                var normals = new NativeArray<float3>(vCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                data.GetNormals(normals.Reinterpret<Vector3>());
+                var normals = new NativeArray<float3>(blockMeshVertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                blockMeshData.GetNormals(normals.Reinterpret<Vector3>());
 
-                var uvs = new NativeArray<float3>(vCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                data.GetUVs(0, uvs.Reinterpret<Vector3>());
+                var uvs = new NativeArray<float3>(blockMeshVertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                blockMeshData.GetUVs(0, uvs.Reinterpret<Vector3>());
 
-                var uvs2 = new NativeArray<float3>(vCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                data.GetUVs(1, uvs2.Reinterpret<Vector3>());
+                var uvs2 = new NativeArray<float3>(blockMeshVertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                blockMeshData.GetUVs(1, uvs2.Reinterpret<Vector3>());
 
-                var outputVerts = outputMesh.GetVertexData<Vector3>();
-                var outputNormals = outputMesh.GetVertexData<Vector3>(stream: 1);
-                var outputUVs = outputMesh.GetVertexData<Vector3>(stream: 2);
-                var outputUVs2 = outputMesh.GetVertexData<Vector3>(stream: 3);
+                // get raw vertex data refs 
+                NativeArray<Vector3> outputVerts = outputMesh.GetVertexData<Vector3>();
+                NativeArray<Vector3> outputNormals = outputMesh.GetVertexData<Vector3>(stream: 1);
+                NativeArray<Vector3> outputUVs = outputMesh.GetVertexData<Vector3>(stream: 2);
+                NativeArray<Vector3> outputUVs2 = outputMesh.GetVertexData<Vector3>(stream: 3);
 
-                for (int i = 0; i < vCount; i++)
+                // write input data into output 
+                for (int i = 0; i < blockMeshVertexCount; i++)
                 {
-                    outputVerts[i + vStart] = verts[i];
-                    outputNormals[i + vStart] = normals[i];
-                    outputUVs[i + vStart] = uvs[i];
-                    outputUVs2[i + vStart] = uvs2[i];
+                    outputVerts[vertexStartIndex + i] = vertices[i];
+                    outputNormals[vertexStartIndex + i] = normals[i];
+                    outputUVs[vertexStartIndex + i] = uvs[i];
+                    outputUVs2[vertexStartIndex + i] = uvs2[i];
                 }
 
-                verts.Dispose();
+                // dispose all allocated memory
+                vertices.Dispose();
                 normals.Dispose();
                 uvs.Dispose();
                 uvs2.Dispose();
 
-                var tStart = triStart[index];
-                var tCount = data.GetSubMesh(0).indexCount;
-                var outputTris = outputMesh.GetIndexData<int>();
+                // write to output index buffer 
+                var trianglesStartIndex = trianglesStartIndices[index];
+                var triangleCount = blockMeshData.GetSubMesh(0).indexCount;
+                var outputTriangles = outputMesh.GetIndexData<int>();
 
-                if (data.indexFormat == IndexFormat.UInt16)
+                // index buffer can come with different data types
+                if (blockMeshData.indexFormat == IndexFormat.UInt16)
                 {
-                    var tris = data.GetIndexData<ushort>();
-                    for (int i = 0; i < tCount; ++i)
+                    var triangles = blockMeshData.GetIndexData<ushort>();
+
+                    for (int i = 0; i < triangleCount; ++i)
                     {
-                        int idx = tris[i];
-                        outputTris[i + tStart] = vStart + idx;
+                        int idx = triangles[i];
+                        outputTriangles[trianglesStartIndex + i] = vertexStartIndex + idx;
                     }
                 }
                 else
                 {
-                    var tris = data.GetIndexData<int>();
-                    for (int i = 0; i < tCount; ++i)
+                    var triangles = blockMeshData.GetIndexData<int>();
+
+                    for (int i = 0; i < triangleCount; ++i)
                     {
-                        int idx = tris[i];
-                        outputTris[i + tStart] = vStart + idx;
+                        int idx = triangles[i];
+                        outputTriangles[trianglesStartIndex + i] = vertexStartIndex + idx;
                     }
                 }
             }
         }
 
-        //TODO is this not BurstCompile?
         struct CalculateBlockTypesJob : IJobParallelFor
         {
-            public NativeArray<BlockType> cData;
-            public NativeArray<BlockType> hData;
             public int width;
             public int height;
-            public Vector3 location;
-            public NativeArray<Unity.Mathematics.Random> randoms;
+            public Vector3 chunkCoordinate;
             public int waterLevel;
+
+            public NativeArray<BlockType> cData;
+            public NativeArray<BlockType> hData;
+            public NativeArray<Unity.Mathematics.Random> randoms;
 
             public void Execute(int i)
             {
-                int xPos = i % width + (int)location.x;
-                int yPos = (i / width) % height + (int)location.y;
-                int zPos = i / (width * height) + (int)location.z;
+                int xPos = i % width + (int)chunkCoordinate.x;
+                int yPos = (i / width) % height + (int)chunkCoordinate.y;
+                int zPos = i / (width * height) + (int)chunkCoordinate.z;
 
                 var random = randoms[i];
 

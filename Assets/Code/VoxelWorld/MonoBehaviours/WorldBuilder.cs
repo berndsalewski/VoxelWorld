@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -11,6 +12,9 @@ namespace VoxelWorld
     /// </summary>
     public class WorldBuilder : MonoBehaviour
     {
+        static readonly ProfilerMarker profilerMarkerBuildSavedChunk = new ProfilerMarker("BuildSavedWorld");
+        static readonly ProfilerMarker profilerMarkerCreateMeshes = new ProfilerMarker("CreateMeshes");
+
         //Events
         public UnityEvent<int> worldBuildingStarted;
         public UnityEvent<int> worldBuildingUpdated;
@@ -19,8 +23,9 @@ namespace VoxelWorld
         //TODO configuration in a scriptable object
         [Header("World Configuration")]
 
+        //TODO only y (height) still used and defunct buildExtraWorld
         [Tooltip("how many chunks does the world consist of initially")]
-        public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);//TODO longer needed? for what?
+        public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);
         public Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
 
         [Tooltip("if a block is above the surface and below this value it will be water, otherwise air")]
@@ -66,8 +71,11 @@ namespace VoxelWorld
 
         private System.Diagnostics.Stopwatch stopwatchBuildWorld = new System.Diagnostics.Stopwatch();
         private System.Diagnostics.Stopwatch stopwatchChunkGeneration = new System.Diagnostics.Stopwatch();
-        private int createdCompletelyNewChunksCount;
         private List<long> chunkGenerationTimes = new List<long>();
+        private int createdNewChunksCount;
+        private System.Diagnostics.Stopwatch stopwatchCachedChunkGeneration = new System.Diagnostics.Stopwatch();
+        private List<long> cachedChunkGenerationTimes = new List<long>();
+        private int createdCachedChunks;
 
         private int _initialChunkColumnCount;
 
@@ -105,6 +113,7 @@ namespace VoxelWorld
             FileSaver.Save(worldDimensions, player);
         }
 
+        private ProfilerMarker _profilerMarkerBuildChunk = new("Build Chunk");
         /// <summary>
         /// creates a new column of chunks at the given coordinate, which corresponds with world position currently
         /// skips creation if a chunk already exist at the position but will set its visibility to <paramref name="meshEnabled"/>
@@ -118,28 +127,36 @@ namespace VoxelWorld
 
             for (int gridY = 0; gridY < worldDimensions.y; gridY++)
             {
+                _profilerMarkerBuildChunk.Begin();
                 Vector3Int chunkCoordinate = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
 
                 // only create a chunk when it was not already created, otherwise just switch visibility
                 if (!_worldModel.IsChunkActive(chunkCoordinate))
                 {
-                    if(!_worldModel.IsChunkInCache(chunkCoordinate))
+                    if (!_worldModel.IsChunkInCache(chunkCoordinate))
                     {
                         stopwatchChunkGeneration.Start();
 
                         BuildChunk(chunkCoordinate);
 
-                        createdCompletelyNewChunksCount++;
+                        createdNewChunksCount++;
                         chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
                         stopwatchChunkGeneration.Reset();
                     }
                     else
                     {
+                        stopwatchCachedChunkGeneration.Start();
+
                         BuildChunkFromCachedData(chunkCoordinate);
+
+                        createdCachedChunks++;
+                        cachedChunkGenerationTimes.Add(stopwatchCachedChunkGeneration.ElapsedMilliseconds);
+                        stopwatchCachedChunkGeneration.Reset();
                     }
                 }
 
                 _worldModel.GetChunk(chunkCoordinate).meshRendererSolidBlocks.enabled = meshEnabled;
+                _profilerMarkerBuildChunk.End();
             }
 
             _worldModel.AddChunkColumn(new Vector2Int(worldX, worldZ));
@@ -149,7 +166,7 @@ namespace VoxelWorld
         {
             GameObject chunkGO = Instantiate(chunkPrefab);
             Chunk chunk = chunkGO.GetComponent<Chunk>();
-            chunk.CreateMeshes(chunkDimensions, coordinate, waterLevel);
+            chunk.CreateChunkMeshes(coordinate, waterLevel);
             _worldModel.AddChunk(coordinate);
             _worldModel.AddChunkToLookup(coordinate, chunk);
             _worldModel.AddChunkToCache(coordinate);
@@ -170,7 +187,7 @@ namespace VoxelWorld
             chunk.chunkData = chunkData;
             chunk.healthData = healthData;
 
-            chunk.CreateMeshes(chunkDimensions, coordinate, waterLevel, false);
+            chunk.CreateChunkMeshes(coordinate, waterLevel, false);
             _worldModel.AddChunk(coordinate);
             _worldModel.AddChunkToLookup(coordinate, chunk);
         }
@@ -194,7 +211,8 @@ namespace VoxelWorld
 
         private IEnumerator BuildWorldFromSaveFile()
         {
-            Debug.Log($"Building World from file started");
+
+            Debug.Log($"Building World from save file started");
             stopwatchBuildWorld.Start();
 
             SaveFileData worldData = FileSaver.Load(this.worldDimensions);
@@ -216,6 +234,10 @@ namespace VoxelWorld
             int index = 0;
             foreach (Vector3Int coordinate in _worldModel.chunks)
             {
+                //debug
+                profilerMarkerBuildSavedChunk.Begin();
+                stopwatchChunkGeneration.Start();
+
                 GameObject chunkGO = Instantiate(chunkPrefab);
                 chunkGO.name = $"Chunk_{coordinate.x}_{coordinate.y}_{coordinate.z}";
                 Chunk chunk = chunkGO.GetComponent<Chunk>();
@@ -231,19 +253,33 @@ namespace VoxelWorld
                     chunkDataIndex++;
                 }
 
-                chunk.CreateMeshes(chunkDimensions, coordinate, waterLevel, false);
+                profilerMarkerCreateMeshes.Begin();
+                chunk.CreateChunkMeshes(coordinate, waterLevel, false);
+                profilerMarkerCreateMeshes.End();
                 _worldModel.AddChunkToLookup(coordinate, chunk);
-                //_worldModel.AddChunkDataToLookupCache(coordinate, chunk.chunkData);
 
                 chunk.meshRendererSolidBlocks.enabled = true;
                 chunk.meshRendererFluidBlocks.enabled = true;
 
                 index++;
                 worldBuildingUpdated.Invoke(1);
+
+                //debug
+                chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
+                stopwatchChunkGeneration.Reset();
+                profilerMarkerBuildSavedChunk.End();
+
+
                 yield return null;
             }
 
             Debug.Log($"Building World from file finished after {stopwatchBuildWorld.ElapsedMilliseconds}ms. {index} Chunks were created");
+            if (chunkGenerationTimes.Count > 0)
+            {
+                Debug.Log($"avg chunk generation time: {chunkGenerationTimes.Average()}");
+                chunkGenerationTimes.Clear();
+            }
+
             stopwatchBuildWorld.Reset();
 
             worldBuildingEnded.Invoke();
@@ -384,14 +420,22 @@ namespace VoxelWorld
             }
 
             // all debug related
-            Debug.Log($"Building of chunk columns finished after {stopwatchBuildWorld.ElapsedMilliseconds}ms. {createdCompletelyNewChunksCount} Chunks were created.");
+            Debug.Log($"Building of chunk columns finished after {stopwatchBuildWorld.ElapsedMilliseconds}ms. " +
+                $"{createdNewChunksCount} Chunks were created. {createdCachedChunks} from Cache");
             stopwatchBuildWorld.Reset();
             if (chunkGenerationTimes.Count > 0)
             {
                 Debug.Log($"avg chunk generation time: {chunkGenerationTimes.Average()}");
             }
             chunkGenerationTimes.Clear();
-            createdCompletelyNewChunksCount = 0;
+            createdNewChunksCount = 0;
+
+            if (cachedChunkGenerationTimes.Count > 0)
+            {
+                Debug.Log($"avg cached chunk generation time: {cachedChunkGenerationTimes.Average()}");
+            }
+            cachedChunkGenerationTimes.Clear();
+            createdCachedChunks = 0;
         }
     }
 }

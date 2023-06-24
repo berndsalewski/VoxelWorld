@@ -2606,7 +2606,7 @@ MonoBehaviour:
   worldDimensions: {x: 7, y: 3, z: 7}
   extraWorldDimensions: {x: 0, y: 0, z: 0}
   waterLevel: 20
-  chunkColumnDrawRadius: 2
+  chunkColumnDrawRadius: 4
   loadFromFile: 1
   chunkPrefab: {fileID: 7167185840046066545, guid: 5eae10abd5016435394c58d8be4609f6, type: 3}
   mainCamera: {fileID: 963194225}

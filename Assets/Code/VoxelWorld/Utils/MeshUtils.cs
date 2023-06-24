@@ -1,11 +1,13 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Text;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
-using VertexData = System.Tuple<UnityEngine.Vector3, UnityEngine.Vector3, UnityEngine.Vector2, UnityEngine.Vector2>;
+using UnityEngine.Rendering;
 
 namespace VoxelWorld
 {
-
     public static class MeshUtils
     {
         public static int[] blockTypeHealth = { 2, 2, 1, 1, 4, 2, 4, 4, 3, 4, -1, 3, 4, -1, -1, -1, -1, -1, -1 };
@@ -54,70 +56,6 @@ namespace VoxelWorld
         { new Vector2(0.1875f,0f), new Vector2(0.1875f,0.0625f), new Vector2(0.25f,0.0625f), new Vector2(0.25f,0f)}
     };
 
-        /// <summary>
-        /// merges all passed meshes (blocks) into one output mesh (chunk)
-        /// </summary>
-        public static Mesh MergeMeshes(Mesh[] meshes)
-        {
-            Mesh outputMesh = new Mesh();
-
-            Dictionary<VertexData, int> vertexToPointIndexLookup = new Dictionary<VertexData, int>();
-            HashSet<VertexData> processedVertices = new HashSet<VertexData>();
-            List<int> newTriangles = new List<int>();
-
-            int pointIndex = 0;
-            // get the next mesh and process it
-            foreach (Mesh currentMesh in meshes)
-            {
-                if (currentMesh == null)
-                {
-                    continue;
-                }
-
-                // extract the data of every vertex of the current mesh and store
-                // the vertexdata in an dictionary together with an upcounting point index
-                int numVertices = currentMesh.vertices.Length;
-                for (int i = 0; i < numVertices; i++)
-                {
-                    Vector3 vertex = currentMesh.vertices[i];
-                    Vector3 normal = currentMesh.normals[i];
-                    Vector2 uv1 = currentMesh.uv[i];
-                    Vector2 uv2 = currentMesh.uv2[i];
-                    VertexData vertexData = new VertexData(vertex, normal, uv1, uv2);
-
-                    if (!processedVertices.Contains(vertexData))
-                    {
-                        vertexToPointIndexLookup.Add(vertexData, pointIndex);
-                        processedVertices.Add(vertexData);
-                        pointIndex++;
-                    }
-                }
-
-                // iterate over the current triangle buffer and look up the new point
-                // index with vertexdata stored in the lookup dictionary and use this
-                // point index in the new version of the triangle buffer
-                int trianglesLength = currentMesh.triangles.Length;
-                for (int j = 0; j < trianglesLength; j++)
-                {
-                    int oldIndex = currentMesh.triangles[j];
-                    Vector3 vertex = currentMesh.vertices[oldIndex];
-                    Vector3 normal = currentMesh.normals[oldIndex];
-                    Vector2 uv1 = currentMesh.uv[oldIndex];
-                    Vector2 uv2 = currentMesh.uv2[oldIndex];
-                    VertexData point = new VertexData(vertex, normal, uv1, uv2);
-
-                    vertexToPointIndexLookup.TryGetValue(point, out int index);
-                    newTriangles.Add(index);
-                }
-            }
-
-            // at this point we have an all new triangle buffer for all the meshes
-            ExtractVertexDataIntoMesh(vertexToPointIndexLookup, outputMesh);
-            outputMesh.triangles = newTriangles.ToArray();
-            outputMesh.RecalculateBounds();
-            return outputMesh;
-        }
-
         public static float fBM(float x, float z, int octaves, float scale, float heightScale, float heightOffset)
         {
             float total = 0;
@@ -143,29 +81,133 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// extracts vertex data from the dictionary keys and writes it into the output mesh
+        /// merge meshes multi threading
         /// </summary>
-        /// <param name="pointsData"></param>
-        /// <param name="outputMesh"></param>
-        private static void ExtractVertexDataIntoMesh(Dictionary<VertexData, int> pointsData, Mesh outputMesh)
+        static public Mesh MergeMeshesWithJobSystem(Mesh[] meshes)
         {
-            List<Vector3> vertices = new List<Vector3>();
-            List<Vector3> normals = new List<Vector3>();
-            List<Vector2> uvs = new List<Vector2>();
-            List<Vector2> uvs2 = new List<Vector2>();
+            //prepare job data
+            Mesh.MeshDataArray inputMeshes = Mesh.AcquireReadOnlyMeshData(meshes);
+            Mesh.MeshDataArray outputMeshes = Mesh.AllocateWritableMeshData(1);
+            Mesh.MeshData outMeshData = outputMeshes[0];
 
-            foreach (VertexData v in pointsData.Keys)
+            // configure the output data structure 
+            int totalVertexCount = 0;
+            int totalIndexCount = 0;
+            foreach (var inMesh in meshes)
             {
-                vertices.Add(v.Item1);
-                normals.Add(v.Item2);
-                uvs.Add(v.Item3);
-                uvs2.Add(v.Item4);
+                totalVertexCount += inMesh.vertexCount;
+                totalIndexCount += (int)inMesh.GetIndexCount(0);
             }
 
-            outputMesh.vertices = vertices.ToArray();
-            outputMesh.normals = normals.ToArray();
-            outputMesh.uv = uvs.ToArray();
-            outputMesh.uv2 = uvs2.ToArray();
+            outMeshData.SetVertexBufferParams(totalVertexCount,
+                new VertexAttributeDescriptor(VertexAttribute.Position),
+                new VertexAttributeDescriptor(VertexAttribute.Normal, stream: 1),
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord0, stream: 2),
+                new VertexAttributeDescriptor(VertexAttribute.TexCoord1, stream: 3)
+                );
+            outMeshData.SetIndexBufferParams(totalIndexCount, IndexFormat.UInt32);
+
+            //configure job
+            MergeMeshesJob mergeJob = new MergeMeshesJob()
+            {
+                inputMeshes = inputMeshes,
+                outMesh = outMeshData
+            };
+
+            // schedule job for execution
+            JobHandle mergeJobHandle = mergeJob.Schedule(meshes.Length, 4);
+            mergeJobHandle.Complete();
+
+            // define some mesh configuration on the out mesh before getting the data
+            var meshDescriptor = new SubMeshDescriptor(0, totalIndexCount, MeshTopology.Triangles);
+            meshDescriptor.firstVertex = 0;
+            meshDescriptor.vertexCount = totalVertexCount;
+            outMeshData.subMeshCount = 1;
+            outMeshData.SetSubMesh(0, meshDescriptor);
+
+            // copy meshData to Mesh
+            Mesh mergedMesh = new Mesh();
+            mergedMesh.name = "Merged Mesh";
+            Mesh.ApplyAndDisposeWritableMeshData(outputMeshes, mergedMesh);
+
+            inputMeshes.Dispose();
+
+            mergedMesh.RecalculateNormals();
+            mergedMesh.RecalculateBounds();
+
+            return mergedMesh;
+        }
+
+        [BurstCompile]
+        private struct MergeMeshesJob : IJobParallelFor
+        {
+            [ReadOnly]
+            public Mesh.MeshDataArray inputMeshes;
+
+            public Mesh.MeshData outMesh;
+
+            public void Execute(int index)
+            {
+                Mesh.MeshData currentMeshData = inputMeshes[index];
+
+                // copy position data from vertex buffer
+                NativeArray<Vector3> inVertices = new NativeArray<Vector3>(currentMeshData.vertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                currentMeshData.GetVertices(inVertices);
+                NativeArray<Vector3> outVertices = outMesh.GetVertexData<Vector3>();
+
+                // copy uv1 data from vertex buffer
+                NativeArray<Vector3> inUVs_1 = new NativeArray<Vector3>(currentMeshData.vertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                currentMeshData.GetUVs(0, inUVs_1);
+                NativeArray<Vector3> outUVs_1 = outMesh.GetVertexData<Vector3>(stream: 2);
+
+                // copy uv1 data from vertex buffer
+                NativeArray<Vector3> inUVs_2 = new NativeArray<Vector3>(currentMeshData.vertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                currentMeshData.GetUVs(1, inUVs_2);
+                NativeArray<Vector3> outUVs_2 = outMesh.GetVertexData<Vector3>(stream: 3);
+
+
+                // copy vertex data
+                int vertexStartIndex = index * currentMeshData.vertexCount;
+                for (int j = 0; j < currentMeshData.vertexCount; j++)
+                {
+                    outVertices[vertexStartIndex + j] = inVertices[j];
+                    outUVs_1[vertexStartIndex + j] = inUVs_1[j];
+                    outUVs_2[vertexStartIndex + j] = inUVs_2[j];
+                }
+
+                // copy index buffer
+                NativeArray<int> outIndices = outMesh.GetIndexData<int>();
+                int indexBufferCount = currentMeshData.GetSubMesh(0).indexCount;
+                int indexStartIndex = index * indexBufferCount;
+                if (currentMeshData.indexFormat == IndexFormat.UInt16)
+                {
+                    NativeArray<ushort> currentIndexBuffer = currentMeshData.GetIndexData<ushort>();
+                    for (int j = 0; j < indexBufferCount; j++)
+                    {
+                        ushort currentIndex = currentIndexBuffer[j];
+                        outIndices[indexStartIndex + j] = vertexStartIndex + currentIndex;
+                    }
+                }
+                else
+                {
+                    NativeArray<int> currentIndexBuffer = currentMeshData.GetIndexData<int>();
+                    for (int j = 0; j < indexBufferCount; j++)
+                    {
+                        int currentIndex = currentIndexBuffer[j];
+                        outIndices[indexStartIndex + j] = vertexStartIndex + currentIndex;
+                    }
+                }
+            }
+        }
+
+        public static void PrintVertices(Mesh mesh)
+        {
+            StringBuilder output = new StringBuilder();
+            for (int i = 0; i < mesh.vertexCount; i++)
+            {
+                output.AppendLine($"{i}.{mesh.vertices[i]}");
+            }
+            Debug.Log($"{output}");
         }
     }
 }
