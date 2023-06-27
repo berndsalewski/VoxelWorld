@@ -163,9 +163,9 @@ namespace VoxelWorld
             }
         }
 
-        ProfilerMarker profilerMarkerRunMergeBlockMeshesJob = new ProfilerMarker("MergeBlockMeshesJob");
-        ProfilerMarker profilerMarkerCreateBlockMeshes = new ProfilerMarker("CreateBlockMeshes");
-        ProfilerMarker profilerMarkerCreateSingleBlock = new ProfilerMarker("CreateSingleBlock");
+        ProfilerMarker profilerMarkerRunMergeBlockMeshesJob = new ("MergeBlockMeshesJob");
+        ProfilerMarker profilerMarkerCreateBlockMeshes = new ("CreateBlockMeshes");
+        ProfilerMarker profilerMarkerCreateSingleBlock = new ("CreateSingleBlock");
         /// <summary>
         /// creates a chunk of blocks, creates the actual meshes for every single block and merges them into 2 chunk meshes
         /// </summary>

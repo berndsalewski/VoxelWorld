@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace VoxelWorld
@@ -21,6 +22,8 @@ namespace VoxelWorld
 
         private Chunk parentChunk;
 
+        ProfilerMarker profilerMarker_CreateQuads = new ("CreateQuads");
+        ProfilerMarker profilerMarker_AllocateMeshes = new ("AllocateMeshes");
         /// <summary>
         /// will create a block, made out of 6 quads (unless quads are not visible), merged into one mesh
         /// </summary>
@@ -35,6 +38,8 @@ namespace VoxelWorld
             {
                 return;
             }
+
+            profilerMarker_CreateQuads.Begin();
 
             parentChunk = parent;
 
@@ -71,10 +76,14 @@ namespace VoxelWorld
                 quads.Add(new Quad(BlockSide.Right, worldPosition, blockType, healthType));
             }
 
+            profilerMarker_CreateQuads.End();
+
             if (quads.Count == 0)
             {
                 return;
             }
+
+            profilerMarker_AllocateMeshes.Begin();
 
             Mesh[] sideMeshes = new Mesh[quads.Count];
             int m = 0;
@@ -83,6 +92,8 @@ namespace VoxelWorld
                 sideMeshes[m] = quad.mesh;
                 m++;
             }
+
+            profilerMarker_AllocateMeshes.End();
 
             mesh = MeshUtils.MergeMeshesWithJobSystem(sideMeshes);
         }

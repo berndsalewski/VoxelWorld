@@ -3,6 +3,7 @@ using System.Text;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -80,11 +81,14 @@ namespace VoxelWorld
             return (xy + yz + xz + yx + zy + zx) / 6;
         }
 
+
+        static private ProfilerMarker _profilerMarker_MergeMeshes = new ("MergeQuadMeshesJob");  
         /// <summary>
         /// merge meshes multi threading
         /// </summary>
         static public Mesh MergeMeshesWithJobSystem(Mesh[] meshes)
         {
+            _profilerMarker_MergeMeshes.Begin();
             //prepare job data
             Mesh.MeshDataArray inputMeshes = Mesh.AcquireReadOnlyMeshData(meshes);
             Mesh.MeshDataArray outputMeshes = Mesh.AllocateWritableMeshData(1);
@@ -135,6 +139,7 @@ namespace VoxelWorld
             mergedMesh.RecalculateNormals();
             mergedMesh.RecalculateBounds();
 
+            _profilerMarker_MergeMeshes.End();
             return mergedMesh;
         }
 
