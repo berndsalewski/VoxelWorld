@@ -374,6 +374,8 @@ namespace VoxelWorld
 
             yield return StartCoroutine(BuildChunkColumns(new Vector3(0, 0, 0), chunkColumnDrawRadius * chunkDimensions.x));
 
+            yield return Resources.UnloadUnusedAssets();
+
             worldBuildingEnded.Invoke();
 
             player.Spawn();
@@ -427,6 +429,8 @@ namespace VoxelWorld
                     }
                 }
             }
+
+            yield return Resources.UnloadUnusedAssets();
 
             PrintChunkColumnGenerationDebugInfo();
         }

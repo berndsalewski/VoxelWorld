@@ -120,6 +120,14 @@ namespace VoxelWorld
 
             // schedule job for execution
             JobHandle mergeJobHandle = mergeJob.Schedule(meshes.Length, 4);
+            int meshCount = meshes.Length;
+            JobHandle mergeJobHandle = mergeJob.Schedule(meshCount, 4);
+
+            for(int i = 0; i < meshCount; i++)
+            {
+                Object.Destroy(meshes[i]);
+            }
+
             mergeJobHandle.Complete();
 
             // define some mesh configuration on the out mesh before getting the data

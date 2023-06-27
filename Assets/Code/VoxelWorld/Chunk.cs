@@ -316,6 +316,11 @@ namespace VoxelWorld
                 meshDescriptor.firstVertex = 0;
                 meshDescriptor.vertexCount = totalVertexBufferCount;
 
+                foreach (Block block in blocks)
+                {
+                    Destroy(block.mesh);
+                }
+
                 handle.Complete();
                 profilerMarkerRunMergeBlockMeshesJob.End();
 
