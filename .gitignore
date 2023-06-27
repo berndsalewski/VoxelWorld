@@ -84,3 +84,9 @@ Assets/Experiments.meta
 todo.txt
 Profiler_Snapshots/*
 Profiler_Snapshots.meta
+Assets/BuildReports/*
+Assets/BuildReports.meta
+Project_Auditor_Reports/*
+Project_AuditorReports.meta
+Assets/Editor.meta
+Assets/Editor/*
