@@ -114,6 +114,7 @@ namespace VoxelWorld
         }
 
         private ProfilerMarker _profilerMarkerBuildChunk = new("Build Chunk");
+
         /// <summary>
         /// creates a new column of chunks at the given coordinate, which corresponds with world position currently
         /// skips creation if a chunk already exist at the position but will set its visibility to <paramref name="meshEnabled"/>
@@ -121,11 +122,11 @@ namespace VoxelWorld
         /// <param name="worldX">world x</param>
         /// <param name="worldZ">world z</param>
         /// <param name="meshEnabled"> set the mesh visible after it has been created</param>
-        private void BuildChunkColumn(int worldX, int worldZ, bool meshEnabled = true)
+        private IEnumerator BuildChunkColumn(int worldX, int worldZ, bool meshEnabled = true)
         {
             Debug.Log($"Activate Chunk Column at {worldX}:{worldZ}");
 
-            for (int gridY = 0; gridY < worldDimensions.y; gridY++)
+            for (int gridY = worldDimensions.y - 1; gridY >= 0; gridY--)
             {
                 _profilerMarkerBuildChunk.Begin();
                 Vector3Int chunkCoordinate = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
@@ -156,7 +157,9 @@ namespace VoxelWorld
                 }
 
                 _worldModel.GetChunk(chunkCoordinate).meshRendererSolidBlocks.enabled = meshEnabled;
+
                 _profilerMarkerBuildChunk.End();
+                yield return null;
             }
 
             _worldModel.AddChunkColumn(new Vector2Int(worldX, worldZ));
@@ -395,6 +398,12 @@ namespace VoxelWorld
             }
         }
 
+        /// <summary>
+        /// creates a whole column of chunks, 1 chunk per frame, used during world updating
+        /// </summary>
+        /// <param name="playerPosition"></param>
+        /// <param name="buildRadius">in block count</param>
+        /// <returns></returns>
         public IEnumerator BuildChunkColumns(Vector3 playerPosition, int buildRadius)
         {
             stopwatchBuildWorld.Start();
@@ -412,16 +421,20 @@ namespace VoxelWorld
                     Vector3Int possibleNewChunkCoordinate = new Vector3Int(x, chunkCoordinates.y, z);
                     if (Vector3Int.Distance(possibleNewChunkCoordinate, chunkCoordinates) <= buildRadius)
                     {
-                        BuildChunkColumn(x, z);
+                        yield return StartCoroutine(BuildChunkColumn(x, z));
                         worldBuildingUpdated.Invoke(1);
                         yield return null;
                     }
                 }
             }
 
+            PrintChunkColumnGenerationDebugInfo();
+        }
+
+        private void PrintChunkColumnGenerationDebugInfo()
+        {
             // all debug related
-            Debug.Log($"Building of chunk columns finished after {stopwatchBuildWorld.ElapsedMilliseconds}ms. " +
-                $"{createdNewChunksCount} Chunks were created. {createdCachedChunks} from Cache");
+            Debug.Log($"Building of chunk columns finished. {createdNewChunksCount} Chunks were created. {createdCachedChunks} from Cache");
             stopwatchBuildWorld.Reset();
             if (chunkGenerationTimes.Count > 0)
             {
