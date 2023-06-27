@@ -111,7 +111,7 @@ namespace VoxelWorld
             MergeMeshesJob mergeJob = new MergeMeshesJob()
             {
                 inputMeshes = inputMeshes,
-                outMesh = outMeshData
+                outMeshData = outMeshData
             };
 
             // schedule job for execution
@@ -144,7 +144,7 @@ namespace VoxelWorld
             [ReadOnly]
             public Mesh.MeshDataArray inputMeshes;
 
-            public Mesh.MeshData outMesh;
+            public Mesh.MeshData outMeshData;
 
             public void Execute(int index)
             {
@@ -153,17 +153,17 @@ namespace VoxelWorld
                 // copy position data from vertex buffer
                 NativeArray<Vector3> inVertices = new NativeArray<Vector3>(currentMeshData.vertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                 currentMeshData.GetVertices(inVertices);
-                NativeArray<Vector3> outVertices = outMesh.GetVertexData<Vector3>();
+                NativeArray<Vector3> outVertices = outMeshData.GetVertexData<Vector3>();
 
                 // copy uv1 data from vertex buffer
                 NativeArray<Vector3> inUVs_1 = new NativeArray<Vector3>(currentMeshData.vertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                 currentMeshData.GetUVs(0, inUVs_1);
-                NativeArray<Vector3> outUVs_1 = outMesh.GetVertexData<Vector3>(stream: 2);
+                NativeArray<Vector3> outUVs_1 = outMeshData.GetVertexData<Vector3>(stream: 2);
 
                 // copy uv1 data from vertex buffer
                 NativeArray<Vector3> inUVs_2 = new NativeArray<Vector3>(currentMeshData.vertexCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
                 currentMeshData.GetUVs(1, inUVs_2);
-                NativeArray<Vector3> outUVs_2 = outMesh.GetVertexData<Vector3>(stream: 3);
+                NativeArray<Vector3> outUVs_2 = outMeshData.GetVertexData<Vector3>(stream: 3);
 
 
                 // copy vertex data
@@ -176,7 +176,7 @@ namespace VoxelWorld
                 }
 
                 // copy index buffer
-                NativeArray<int> outIndices = outMesh.GetIndexData<int>();
+                NativeArray<int> outIndices = outMeshData.GetIndexData<int>();
                 int indexBufferCount = currentMeshData.GetSubMesh(0).indexCount;
                 int indexStartIndex = index * indexBufferCount;
                 if (currentMeshData.indexFormat == IndexFormat.UInt16)

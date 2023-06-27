@@ -20,7 +20,7 @@ namespace VoxelWorld
     {
         public Mesh mesh;
 
-        //TODO adjust coordinates so the blocks match the unity grid
+        // all vertices of a cube
         private static Vector3 p0 = new Vector3(-0.5f, -0.5f, -0.5f);
         private static Vector3 p1 = new Vector3(-0.5f, 0.5f, -0.5f);
         private static Vector3 p2 = new Vector3(0.5f, 0.5f, -0.5f);
@@ -104,7 +104,7 @@ namespace VoxelWorld
 
             // TODO: docs say that setting triangles automatically recalculates bounds, so this is not necessary?
             // https://docs.unity3d.com/ScriptReference/Mesh.RecalculateBounds.html
-            mesh.RecalculateBounds();
+            //mesh.RecalculateBounds();
         }
     }
 }

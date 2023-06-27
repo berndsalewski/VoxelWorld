@@ -111,7 +111,7 @@ namespace VoxelWorld
                     if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack +
                         MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
                     {
-                        Debug.Log($"Delete at chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                        Debug.Log($"Delete at chunk:{thisChunk.coordinate} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
                         thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
 
                         // takes care of dropping blocks
@@ -127,7 +127,7 @@ namespace VoxelWorld
             // build block with right mouse button
             else
             {
-                Debug.Log($"Build in chunk:{thisChunk.coordinates} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                Debug.Log($"Build in chunk:{thisChunk.coordinate} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
                 thisChunk.chunkData[currentBlockIndex] = buildBlockType;
                 thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
                 StartCoroutine(worldUpdater.HandleBlockDropping(thisChunk, currentBlockIndex));
