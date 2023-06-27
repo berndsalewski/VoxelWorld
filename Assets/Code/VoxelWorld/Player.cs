@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
-using VoxelWorld;
+using UnityEngine.Profiling;
 
 namespace VoxelWorld
 {
@@ -170,6 +169,13 @@ namespace VoxelWorld
 
         private void OnGUI()
         {
+            GUIStyle boxStyle = new GUIStyle();
+            boxStyle.alignment = TextAnchor.UpperLeft;
+            boxStyle.normal.textColor = Color.white;
+            boxStyle.normal.background = Texture2D.grayTexture;
+            boxStyle.padding.left = 5;
+            boxStyle.padding.top = 5;
+
             if (didRaycastHitACollider)
             {
                 (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
@@ -178,12 +184,7 @@ namespace VoxelWorld
                 BlockType blockType = BlockType.Redstone;
                 blockType = chunk.chunkData[blockIndex];
 
-                GUIStyle boxStyle = new GUIStyle();
-                boxStyle.alignment = TextAnchor.UpperLeft;
-                boxStyle.normal.textColor = Color.white;
-                boxStyle.normal.background = Texture2D.grayTexture;
-                boxStyle.padding.left = 5;
-                boxStyle.padding.top = 5;
+
 
                 GUI.Box(new Rect(10f, 10f, 160f, 24f), $"Chunk: {chunkPosition}", boxStyle);
                 GUI.Box(new Rect(10f, 35f, 160f, 24f), $"Block: {blockPosition}", boxStyle);
@@ -192,6 +193,9 @@ namespace VoxelWorld
                 GUI.Box(new Rect(10f, 110f, 160f, 24f), $"Hit:  {rayCastHitPoint}", boxStyle);
                 GUI.Box(new Rect(10f, 135f, 160f, 24f), $"Collider:  {hitColliderName}", boxStyle);
             }
+
+            GUI.Box(new Rect(10f, 210f, 300f, 24f),
+                $"Total Used Memory:  {(Profiler.GetTotalAllocatedMemoryLong() / (1000f * 1000f)).ToString("F2")} mb", boxStyle);
         }
 #endif
     }
