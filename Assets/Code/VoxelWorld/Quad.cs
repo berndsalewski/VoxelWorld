@@ -101,10 +101,6 @@ namespace VoxelWorld
             };
 
             mesh.triangles = new int[] { 0, 1, 2, 0, 2, 3 };
-
-            // TODO: docs say that setting triangles automatically recalculates bounds, so this is not necessary?
-            // https://docs.unity3d.com/ScriptReference/Mesh.RecalculateBounds.html
-            //mesh.RecalculateBounds();
         }
     }
 }
