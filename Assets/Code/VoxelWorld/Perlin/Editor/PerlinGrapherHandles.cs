@@ -1,10 +1,10 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace VoxelWorld
+namespace VoxelWorld.Editor
 {
     [CustomEditor(typeof(PerlinGrapher))]
-    public class PerlinGrapherHandles : Editor
+    public class PerlinGrapherHandles : UnityEditor.Editor
     {
         void OnSceneGUI()
         {

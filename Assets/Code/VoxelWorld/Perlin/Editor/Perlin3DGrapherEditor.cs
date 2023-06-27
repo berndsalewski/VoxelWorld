@@ -1,10 +1,10 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace VoxelWorld
+namespace VoxelWorld.Editor
 {
     [CustomEditor(typeof(Perlin3DGrapher))]
-    public class Perlin3DGrapherEditor : Editor
+    public class Perlin3DGrapherEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
