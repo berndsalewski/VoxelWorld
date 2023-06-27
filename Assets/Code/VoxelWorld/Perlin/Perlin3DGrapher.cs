@@ -1,10 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace VoxelWorld
 {
-
     [ExecuteInEditMode]
     public class Perlin3DGrapher : MonoBehaviour
     {
@@ -12,15 +9,18 @@ namespace VoxelWorld
 
         [Range(1, 10)]
         public float heightScale = 1;
+
         [Range(0.01f, 1)]
         public float scale = 1f;
+
         [Range(1, 10)]
         public int octaves = 1;
+
         [Range(-20, 20)]
         public float heightOffset = 0;
+
         [Range(1, 10)]
         public float DrawCutOff = 1;
-
 
         private void CreateCubes()
         {

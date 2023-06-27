@@ -1,8 +1,5 @@
-﻿using System;
-
-namespace VoxelWorld
+﻿namespace VoxelWorld
 {
-
     public struct PerlinSettings
     {
         public float heightScale;
