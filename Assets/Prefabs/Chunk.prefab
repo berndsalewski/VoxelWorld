@@ -44,12 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 014f0fae0cc7e4120b051d2bb2a32168, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  atlas: {fileID: 2100000, guid: 5f65cd4444a9a4b73ae7858fc29cc7b5, type: 2}
-  fluid: {fileID: 2100000, guid: 86b0d5f679ec7401d8b00252c118d8b5, type: 2}
-  width: 30
-  height: 30
-  depth: 30
-  location: {x: 0, y: 0, z: 0}
+  solidBlocks: {fileID: 2100000, guid: 5f65cd4444a9a4b73ae7858fc29cc7b5, type: 2}
+  waterBlocks: {fileID: 2100000, guid: 86b0d5f679ec7401d8b00252c118d8b5, type: 2}
+  coordinate: {x: 0, y: 0, z: 0}
   chunkData: 
   healthData: 
-  meshRenderer: {fileID: 0}
+  meshRendererSolidBlocks: {fileID: 0}
+  meshRendererFluidBlocks: {fileID: 0}

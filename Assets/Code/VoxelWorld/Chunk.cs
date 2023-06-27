@@ -18,8 +18,8 @@ namespace VoxelWorld
     /// </summary>
     public class Chunk : MonoBehaviour
     {
-        public Material atlas;
-        public Material fluid;
+        public Material solidBlocks;
+        public Material waterBlocks;
 
         [HideInInspector]
         public Vector3Int coordinate;
@@ -163,9 +163,9 @@ namespace VoxelWorld
             }
         }
 
-        ProfilerMarker profilerMarkerRunMergeBlockMeshesJob = new ("MergeBlockMeshesJob");
-        ProfilerMarker profilerMarkerCreateBlockMeshes = new ("CreateBlockMeshes");
-        ProfilerMarker profilerMarkerCreateSingleBlock = new ("CreateSingleBlock");
+        ProfilerMarker profilerMarkerRunMergeBlockMeshesJob = new("MergeBlockMeshesJob");
+        ProfilerMarker profilerMarkerCreateBlockMeshes = new("CreateBlockMeshes");
+        ProfilerMarker profilerMarkerCreateSingleBlock = new("CreateSingleBlock");
         /// <summary>
         /// creates a chunk of blocks, creates the actual meshes for every single block and merges them into 2 chunk meshes
         /// </summary>
@@ -191,7 +191,7 @@ namespace VoxelWorld
                 meshFilterSolid = solidMesh.AddComponent<MeshFilter>();
                 meshRendererSolid = solidMesh.AddComponent<MeshRenderer>();
                 meshRendererSolidBlocks = meshRendererSolid;
-                meshRendererSolid.material = atlas;
+                meshRendererSolid.material = solidBlocks;
             }
             else
             {
@@ -201,13 +201,13 @@ namespace VoxelWorld
 
             if (fluidMesh == null)
             {
-                fluidMesh = new GameObject("Fluid");
+                fluidMesh = new GameObject("Water");
                 fluidMesh.transform.parent = gameObject.transform;
                 meshFilterFluid = fluidMesh.AddComponent<MeshFilter>();
                 meshRendererFluid = fluidMesh.AddComponent<MeshRenderer>();
                 fluidMesh.AddComponent<UVScroller>();
                 meshRendererFluidBlocks = meshRendererFluid;
-                meshRendererFluid.material = fluid;
+                meshRendererFluid.material = waterBlocks;
             }
             else
             {
@@ -310,8 +310,8 @@ namespace VoxelWorld
                 var handle = mergeBlockMeshesJob.Schedule(inputBlockMeshes.Count, 4);
 
                 var mergedMesh = new Mesh();
-                mergedMesh.name = $"Chunk_{coordinate.x}_{coordinate.y}_{coordinate.z}";
-                name = mergedMesh.name;
+                mergedMesh.name = pass == 0 ? "Solid" : "Water";
+                name = $"chunk_{coordinate.x.ToString()}_{coordinate.y.ToString()}_{coordinate.z.ToString()}";
                 var meshDescriptor = new SubMeshDescriptor(0, totalIndexBufferCount, MeshTopology.Triangles);
                 meshDescriptor.firstVertex = 0;
                 meshDescriptor.vertexCount = totalVertexBufferCount;

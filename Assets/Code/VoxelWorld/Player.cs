@@ -110,7 +110,9 @@ namespace VoxelWorld
                     if (thisChunk.healthData[currentBlockIndex] == BlockType.Nocrack +
                         MeshUtils.blockTypeHealth[(int)thisChunk.chunkData[currentBlockIndex]])
                     {
-                        Debug.Log($"Delete at chunk:{thisChunk.coordinate} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                        Debug.Log($"Delete at chunk:{thisChunk.coordinate.ToString()} blockId:{currentBlockIndex.ToString()} block:" +
+                            $"{blockPosition.x.ToString()}:{blockPosition.y.ToString()}:{blockPosition.z.ToString()}");
+
                         thisChunk.chunkData[currentBlockIndex] = BlockType.Air;
 
                         // takes care of dropping blocks
@@ -126,7 +128,8 @@ namespace VoxelWorld
             // build block with right mouse button
             else
             {
-                Debug.Log($"Build in chunk:{thisChunk.coordinate} blockId:{currentBlockIndex} block:{blockPosition.x}:{blockPosition.y}:{blockPosition.z}");
+                Debug.Log($"Build in chunk:{thisChunk.coordinate.ToString()} blockId:{currentBlockIndex.ToString()} " +
+                    $"block:{blockPosition.x.ToString()}:{blockPosition.y.ToString()}:{blockPosition.z.ToString()}");
                 thisChunk.chunkData[currentBlockIndex] = buildBlockType;
                 thisChunk.healthData[currentBlockIndex] = BlockType.Nocrack;
                 StartCoroutine(worldUpdater.HandleBlockDropping(thisChunk, currentBlockIndex));
@@ -169,13 +172,6 @@ namespace VoxelWorld
 
         private void OnGUI()
         {
-            GUIStyle boxStyle = new GUIStyle();
-            boxStyle.alignment = TextAnchor.UpperLeft;
-            boxStyle.normal.textColor = Color.white;
-            boxStyle.normal.background = Texture2D.grayTexture;
-            boxStyle.padding.left = 5;
-            boxStyle.padding.top = 5;
-
             if (didRaycastHitACollider)
             {
                 (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
@@ -184,6 +180,12 @@ namespace VoxelWorld
                 BlockType blockType = BlockType.Redstone;
                 blockType = chunk.chunkData[blockIndex];
 
+                GUIStyle boxStyle = new GUIStyle();
+                boxStyle.alignment = TextAnchor.UpperLeft;
+                boxStyle.normal.textColor = Color.white;
+                boxStyle.normal.background = Texture2D.grayTexture;
+                boxStyle.padding.left = 5;
+                boxStyle.padding.top = 5;
 
 
                 GUI.Box(new Rect(10f, 10f, 160f, 24f), $"Chunk: {chunkPosition}", boxStyle);
@@ -193,9 +195,6 @@ namespace VoxelWorld
                 GUI.Box(new Rect(10f, 110f, 160f, 24f), $"Hit:  {rayCastHitPoint}", boxStyle);
                 GUI.Box(new Rect(10f, 135f, 160f, 24f), $"Collider:  {hitColliderName}", boxStyle);
             }
-
-            GUI.Box(new Rect(10f, 210f, 300f, 24f),
-                $"Total Used Memory:  {(Profiler.GetTotalAllocatedMemoryLong() / (1000f * 1000f)).ToString("F2")} mb", boxStyle);
         }
 #endif
     }

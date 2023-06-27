@@ -84,7 +84,7 @@ namespace VoxelWorld
 
         static private ProfilerMarker _profilerMarker_MergeMeshes = new ("MergeQuadMeshesJob");  
         /// <summary>
-        /// merge meshes multi threading
+        /// merge meshes multi threading, currently used for merging the Quad meshes to blocks
         /// </summary>
         static public Mesh MergeMeshesWithJobSystem(Mesh[] meshes)
         {
@@ -119,7 +119,6 @@ namespace VoxelWorld
             };
 
             // schedule job for execution
-            JobHandle mergeJobHandle = mergeJob.Schedule(meshes.Length, 4);
             int meshCount = meshes.Length;
             JobHandle mergeJobHandle = mergeJob.Schedule(meshCount, 4);
 
@@ -139,7 +138,6 @@ namespace VoxelWorld
 
             // copy meshData to Mesh
             Mesh mergedMesh = new Mesh();
-            mergedMesh.name = "Merged Mesh";
             Mesh.ApplyAndDisposeWritableMeshData(outputMeshes, mergedMesh);
 
             inputMeshes.Dispose();

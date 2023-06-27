@@ -9,11 +9,13 @@ namespace VoxelWorld
     {
         Vector2 uvSpeed = new Vector2(0, 0.01f);
         Vector2 uvOffset = Vector2.zero;
-        MeshRenderer rend;
+        MeshRenderer meshRenderer;
+        List<Material> materials;
 
         private void Start()
         {
-            rend = this.GetComponent<MeshRenderer>();
+            materials = new List<Material>();
+            meshRenderer = GetComponent<MeshRenderer>();
         }
 
         private void LateUpdate()
@@ -29,7 +31,8 @@ namespace VoxelWorld
                 uvOffset = new Vector2(uvOffset.x, 0);
             }
 
-            rend.materials[0].SetTextureOffset("_MainTex", uvOffset);
+            meshRenderer.GetMaterials(materials);
+            materials[0].SetTextureOffset("_MainTex", uvOffset);
         }
     }
 }
