@@ -82,3 +82,5 @@ Assets/Plugins/ConsolePro*
 Assets/Experiments/
 Assets/Experiments.meta
 todo.txt
+Profiler_Snapshots/*
+Profiler_Snapshots.meta
