@@ -5,57 +5,44 @@ using UnityEngine.Profiling;
 
 public class MemoryStats : MonoBehaviour
 {
-    const int BYTES_TO_MB = 1000 * 1000;
-    string statsText;
-    ProfilerRecorder totalReservedMemoryRecorder;
-    ProfilerRecorder gcReservedMemoryRecorder;
-    ProfilerRecorder systemUsedMemoryRecorder;
-
-    GUIStyle style;
-
-    private void Start()
-    {
-        style = new GUIStyle();
-        style.alignment = TextAnchor.UpperLeft;
-        style.normal.textColor = Color.white;
-        style.normal.background = Texture2D.grayTexture;
-        style.padding.left = 5;
-        style.padding.top = 5;
-    }
+    public const float BYTES_TO_MB = 1000 * 1000;
+    private string _statsText;
+    private ProfilerRecorder _totalReservedMemoryRecorder;
+    private ProfilerRecorder _gcReservedMemoryRecorder;
+    private ProfilerRecorder _systemUsedMemoryRecorder;
 
     void OnEnable()
     {
-        totalReservedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "Total Reserved Memory");
-        gcReservedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Reserved Memory");
-        systemUsedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
+        _totalReservedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "Total Reserved Memory");
+        _gcReservedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "GC Reserved Memory");
+        _systemUsedMemoryRecorder = ProfilerRecorder.StartNew(ProfilerCategory.Memory, "System Used Memory");
     }
 
     void OnDisable()
     {
-        totalReservedMemoryRecorder.Dispose();
-        gcReservedMemoryRecorder.Dispose();
-        systemUsedMemoryRecorder.Dispose();
+        _totalReservedMemoryRecorder.Dispose();
+        _gcReservedMemoryRecorder.Dispose();
+        _systemUsedMemoryRecorder.Dispose();
     }
 
     void Update()
     {
         var sb = new StringBuilder(500);
-        if (totalReservedMemoryRecorder.Valid)
-            sb.AppendLine($"Total Reserved Memory: {(totalReservedMemoryRecorder.LastValue / BYTES_TO_MB).ToString("F2")} MB");
-        if (gcReservedMemoryRecorder.Valid)
-            sb.AppendLine($"GC Reserved Memory: {(gcReservedMemoryRecorder.LastValue / BYTES_TO_MB).ToString("F2")} MB");
-        if (systemUsedMemoryRecorder.Valid)
-            sb.AppendLine($"System Used Memory: {(systemUsedMemoryRecorder.LastValue / BYTES_TO_MB).ToString("F2")} MB");
-        statsText = sb.ToString();
+        if (_totalReservedMemoryRecorder.Valid)
+            sb.AppendLine($"Total Reserved Memory: {(_totalReservedMemoryRecorder.LastValue / BYTES_TO_MB).ToString("F2")} MB");
+        if (_gcReservedMemoryRecorder.Valid)
+            sb.AppendLine($"GC Reserved Memory: {(_gcReservedMemoryRecorder.LastValue / BYTES_TO_MB).ToString("F2")} MB");
+        if (_systemUsedMemoryRecorder.Valid)
+            sb.AppendLine($"System Used Memory: {(_systemUsedMemoryRecorder.LastValue / BYTES_TO_MB).ToString("F2")} MB");
+
+        sb.AppendLine($"Total Used Memory: {(Profiler.GetTotalAllocatedMemoryLong() / BYTES_TO_MB).ToString("F2")} MB");
+
+        _statsText = sb.ToString();
     }
 
     void OnGUI()
     {
-
-        GUI.TextArea(new Rect(10, 180, 250, 50), statsText, style);
-
-        GUI.Box(new Rect(10, 230, 250, 24),
-    $"Total Used Memory:  {(Profiler.GetTotalAllocatedMemoryLong() / BYTES_TO_MB).ToString("F2")} MB", style);
+        GUI.TextArea(UIScaler.GetScaledRect(10, 180, 250, 70), _statsText, UIScaler.scaledStyle);
     }
 }
 

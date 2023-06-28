@@ -177,23 +177,17 @@ namespace VoxelWorld
                 (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
                 Chunk chunk = _worldModel.GetChunk(chunkPosition);
-                BlockType blockType = BlockType.Redstone;
-                blockType = chunk.chunkData[blockIndex];
+                BlockType blockType = chunk.chunkData[blockIndex];
 
-                GUIStyle boxStyle = new GUIStyle();
-                boxStyle.alignment = TextAnchor.UpperLeft;
-                boxStyle.normal.textColor = Color.white;
-                boxStyle.normal.background = Texture2D.grayTexture;
-                boxStyle.padding.left = 5;
-                boxStyle.padding.top = 5;
-
-
-                GUI.Box(new Rect(10f, 10f, 160f, 24f), $"Chunk: {chunkPosition}", boxStyle);
-                GUI.Box(new Rect(10f, 35f, 160f, 24f), $"Block: {blockPosition}", boxStyle);
-                GUI.Box(new Rect(10f, 60f, 160f, 24f), $"Block Id:  {blockIndex}", boxStyle);
-                GUI.Box(new Rect(10f, 85f, 160f, 24f), $"Type:  {blockType}", boxStyle);
-                GUI.Box(new Rect(10f, 110f, 160f, 24f), $"Hit:  {rayCastHitPoint}", boxStyle);
-                GUI.Box(new Rect(10f, 135f, 160f, 24f), $"Collider:  {hitColliderName}", boxStyle);
+                int boxWidth = 164;
+                int paddingLeft = 10;
+                int lineHeight = 24;
+                GUI.Box(UIScaler.GetScaledRect(paddingLeft, 10, boxWidth, lineHeight), $"Chunk: {chunkPosition}", UIScaler.scaledStyle);
+                GUI.Box(UIScaler.GetScaledRect(paddingLeft, 35, boxWidth, lineHeight), $"Block: {blockPosition}", UIScaler.scaledStyle);
+                GUI.Box(UIScaler.GetScaledRect(paddingLeft, 60, boxWidth, lineHeight), $"Block Id:  {blockIndex}", UIScaler.scaledStyle);
+                GUI.Box(UIScaler.GetScaledRect(paddingLeft, 85, boxWidth, lineHeight), $"Type:  {blockType}", UIScaler.scaledStyle);
+                GUI.Box(UIScaler.GetScaledRect(paddingLeft, 110, boxWidth, lineHeight), $"Hit:  {rayCastHitPoint}", UIScaler.scaledStyle);
+                GUI.Box(UIScaler.GetScaledRect(paddingLeft, 135, boxWidth, lineHeight), $"Collider:  {hitColliderName}", UIScaler.scaledStyle);
             }
         }
 #endif
