@@ -8,7 +8,7 @@ public class GameController : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.B))
+        if (Input.GetKeyDown(KeyCode.B) && Input.GetKey(KeyCode.LeftControl))
         {
             BackToStartMenu();
         }
@@ -21,6 +21,7 @@ public class GameController : MonoBehaviour
 
     private void BackToStartMenu()
     {
+        FileSaver.Save(player);
         SceneManager.LoadScene(0);
     }
 

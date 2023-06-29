@@ -68,12 +68,13 @@ namespace VoxelWorld
         }
 
         /// <summary>
-        /// used by Buttons in Scene
+        /// 
         /// </summary>
         /// <param name="type"></param>
-        public void SetBuildType(int type)
+        public void SetBuildType(BlockType type)
         {
-            buildBlockType = (BlockType)type;
+            Debug.Log($"switched build type to {type}");
+            buildBlockType = type;
         }
 
         public void SetActive(bool isActive)
