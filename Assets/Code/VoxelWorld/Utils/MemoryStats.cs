@@ -42,7 +42,7 @@ public class MemoryStats : MonoBehaviour
 
     void OnGUI()
     {
-        GUI.TextArea(UIScaler.GetScaledRect(10, 180, 250, 70), _statsText, UIScaler.scaledStyle);
+        GUI.TextArea(UIScaler.GetScaledRect(10, Screen.height-80, 250, 70), _statsText, UIScaler.scaledStyle);
     }
 }
 

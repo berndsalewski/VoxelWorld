@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 
 namespace VoxelWorld
 {
@@ -39,8 +40,6 @@ namespace VoxelWorld
         /// </summary>
         public static Vector3Int chunkDimensions = new Vector3Int(10, 10, 10);
         public static int blockCountPerChunk = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
-
-        public bool loadFromFile = false;
 
         [Header("References")]
         public GameObject chunkPrefab;
@@ -95,7 +94,7 @@ namespace VoxelWorld
 
             CalculateInitialChunkColumnCount();
 
-            if (loadFromFile)
+            if (SessionGameData.loadFromFile)
             {
                 StartCoroutine(BuildWorldFromSaveFile());
             }
@@ -103,14 +102,6 @@ namespace VoxelWorld
             {
                 StartCoroutine(BuildNewWorld());
             }
-        }
-
-        /// <summary>
-        /// hooked up to UI Button
-        /// </summary>
-        public void SaveWorld()
-        {
-            FileSaver.Save(worldDimensions, player);
         }
 
         private ProfilerMarker _profilerMarkerBuildChunk = new("Build Chunk");
@@ -218,7 +209,7 @@ namespace VoxelWorld
             Debug.Log($"Building World from save file started");
             stopwatchBuildWorld.Start();
 
-            SaveFileData worldData = FileSaver.Load(this.worldDimensions);
+            SaveFileData worldData = FileSaver.Load();
             if (worldData == null)
             {
                 StartCoroutine(BuildNewWorld());
@@ -271,7 +262,6 @@ namespace VoxelWorld
                 chunkGenerationTimes.Add(stopwatchChunkGeneration.ElapsedMilliseconds);
                 stopwatchChunkGeneration.Reset();
                 profilerMarkerBuildSavedChunk.End();
-
 
                 yield return null;
             }
@@ -453,6 +443,11 @@ namespace VoxelWorld
             }
             cachedChunkGenerationTimes.Clear();
             createdCachedChunks = 0;
+        }
+
+        private void OnDestroy()
+        {
+            _worldModel.Destroy();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 
@@ -152,6 +153,16 @@ namespace VoxelWorld
         internal bool IsChunkInCache(Vector3Int chunkCoordinate)
         {
             return _chunksCache.Contains(chunkCoordinate) && _chunksDataCacheLookup.ContainsKey(chunkCoordinate);
+        }
+
+        internal void Destroy()
+        {
+            _chunks.Clear();
+            _chunksLookup.Clear();
+            _chunkColumns.Clear();
+            _chunksCache.Clear();
+            _chunkColumnsCache.Clear();
+            _chunksDataCacheLookup.Clear();
         }
     }
 }

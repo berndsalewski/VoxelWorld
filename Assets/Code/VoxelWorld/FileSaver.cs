@@ -1,29 +1,32 @@
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 using UnityEngine;
 
 namespace VoxelWorld
 {
-    public static class FileSaver
+    static public class FileSaver
     {
+        public const string SAVE_FILE_ENDING = ".dat";
+
+        static public readonly string saveFileDirectory = Application.persistentDataPath + "/savedata/";
+
         private static SaveFileData saveFile;
 
-        static string BuildSaveFileName(Vector3 worldDimensions)
+        static private string BuildSaveFileName()
         {
-            return Application.persistentDataPath
-                + "/savedata/World_"
-                + WorldBuilder.chunkDimensions.x + "_"
-                + WorldBuilder.chunkDimensions.y + "_"
-                + WorldBuilder.chunkDimensions.z + "_"
-                + worldDimensions.x + "_"
-                + worldDimensions.y + "_"
-                + worldDimensions.z + ".dat";
+            StringBuilder filePath = new StringBuilder();
+            filePath.Append(saveFileDirectory);
+            filePath.Append(SessionGameData.worldFileName);
+            filePath.Append(SAVE_FILE_ENDING);
+
+            return filePath.ToString();
         }
 
-        public static void Save(Vector3Int worldDimensions, Player player)
+        static public void Save(Player player)
         {
             WorldDataModel worldModel = WorldDataModel.Instance;
-            string fileName = BuildSaveFileName(worldDimensions);
+            string fileName = BuildSaveFileName();
             if (!File.Exists(fileName))
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(fileName));
@@ -39,9 +42,9 @@ namespace VoxelWorld
             Debug.Log($"Saving World to File: {fileName}");
         }
 
-        public static SaveFileData Load(Vector3Int worldDimensions)
+        static public SaveFileData Load()
         {
-            string fileName = BuildSaveFileName(worldDimensions);
+            string fileName = BuildSaveFileName();
             if (File.Exists(fileName))
             {
                 BinaryFormatter bf = new BinaryFormatter();
@@ -53,7 +56,7 @@ namespace VoxelWorld
                 Debug.Log($"Loading World from File: {fileName}");
                 return saveFile;
             }
-            Debug.LogError($"File not found");
+            Debug.LogError($"File not found with name: {fileName}");
             return null;
         }
     }
