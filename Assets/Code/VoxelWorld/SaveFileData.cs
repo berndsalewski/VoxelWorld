@@ -6,6 +6,9 @@ using UnityEngine;
 
 namespace VoxelWorld
 {
+    /// <summary>
+    /// This class gets serialised into binary to persists the world and the player data, only serialisable data in here!
+    /// </summary>
     [Serializable]
     public class SaveFileData
     {
@@ -33,11 +36,13 @@ namespace VoxelWorld
         public float playerPositionY;
         public float playerPositionZ;
 
+
         public SaveFileData() { }
 
         public SaveFileData(
             WorldDataModel worldModel,
-            Vector3 playerPosition)
+            Vector3 playerPosition,
+            int blockCountPerChunk)
         {
             chunkCoordinates = new int[worldModel.chunksCache.Count * 3];
             int i = 0;
@@ -58,7 +63,7 @@ namespace VoxelWorld
                 i += 2;
             }
 
-            chunksData = new int[worldModel.chunksDataCacheLookup.Count * WorldBuilder.blockCountPerChunk];
+            chunksData = new int[worldModel.chunksDataCacheLookup.Count * blockCountPerChunk];
             chunkVisibility = new bool[worldModel.chunksDataCacheLookup.Count];
             int visibilityIndex = 0;
             int chunkDataIndex = 0;

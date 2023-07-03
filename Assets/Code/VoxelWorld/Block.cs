@@ -22,6 +22,8 @@ namespace VoxelWorld
 
         private Chunk parentChunk;
 
+        private WorldConfiguration _worldConfiguration;
+
         ProfilerMarker profilerMarker_CreateQuads = new ("CreateQuads");
         ProfilerMarker profilerMarker_AllocateMeshes = new ("AllocateMeshes");
         /// <summary>
@@ -32,12 +34,14 @@ namespace VoxelWorld
         /// <param name="blockType"></param>
         /// <param name="parent"></param>
         /// <param name="healthType"></param>
-        public Block(Chunk parent, Vector3Int localCoordinates, Vector3Int chunkCoordinates, BlockType blockType, BlockType healthType)
+        public Block(Chunk parent, Vector3Int localCoordinates, Vector3Int chunkCoordinates, BlockType blockType, BlockType healthType, WorldConfiguration configuration)
         {
             if (blockType == BlockType.Air)
             {
                 return;
             }
+
+            _worldConfiguration = configuration;
 
             profilerMarker_CreateQuads.Begin();
 
@@ -130,9 +134,9 @@ namespace VoxelWorld
 
         private bool IsOutsideOfChunk(Vector3Int coordinates)
         {
-            return (coordinates.x < 0 || coordinates.x >= WorldBuilder.chunkDimensions.x
-                || coordinates.y < 0 || coordinates.y >= WorldBuilder.chunkDimensions.y
-                || coordinates.z < 0 || coordinates.z >= WorldBuilder.chunkDimensions.z);
+            return (coordinates.x < 0 || coordinates.x >= _worldConfiguration.chunkDimensions.x
+                || coordinates.y < 0 || coordinates.y >= _worldConfiguration.chunkDimensions.y
+                || coordinates.z < 0 || coordinates.z >= _worldConfiguration.chunkDimensions.z);
         }
     }
 }

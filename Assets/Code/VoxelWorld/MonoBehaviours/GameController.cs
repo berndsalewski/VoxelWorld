@@ -5,6 +5,7 @@ using VoxelWorld;
 public class GameController : MonoBehaviour
 {
     public Player player;
+    public WorldConfiguration worldConfiguration;
 
     void Update()
     {
@@ -21,7 +22,7 @@ public class GameController : MonoBehaviour
 
     private void BackToStartMenu()
     {
-        FileSaver.Save(player);
+        FileSaver.Save(player, worldConfiguration.blockCountPerChunk);
         SceneManager.LoadScene(0);
     }
 
@@ -30,6 +31,6 @@ public class GameController : MonoBehaviour
     /// </summary>
     public void SaveWorld()
     {
-        FileSaver.Save(player);
+        FileSaver.Save(player, worldConfiguration.blockCountPerChunk);
     }
 }

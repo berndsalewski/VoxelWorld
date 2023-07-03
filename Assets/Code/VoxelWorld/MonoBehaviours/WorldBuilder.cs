@@ -4,7 +4,6 @@ using System.Linq;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.SceneManagement;
 
 namespace VoxelWorld
 {
@@ -24,22 +23,12 @@ namespace VoxelWorld
         //TODO configuration in a scriptable object
         [Header("World Configuration")]
 
-        //TODO only y (height) still used and defunct buildExtraWorld
-        [Tooltip("how many chunks does the world consist of initially")]
-        public Vector3Int worldDimensions = new Vector3Int(5, 5, 5);
-        public Vector3Int extraWorldDimensions = new Vector3Int(10, 5, 10);
-
-        [Tooltip("if a block is above the surface and below this value it will be water, otherwise air")]
-        public int waterLevel;
-
-        [Tooltip("radius around the player in which new chunk columns are added, value is number of chunks")]
-        public int chunkColumnDrawRadius = 3;
+        public WorldConfiguration worldConfiguration;
 
         /// <summary>
         /// unit is number of blocks
         /// </summary>
-        public static Vector3Int chunkDimensions = new Vector3Int(10, 10, 10);
-        public static int blockCountPerChunk = chunkDimensions.x * chunkDimensions.y * chunkDimensions.z;
+        
 
         [Header("References")]
         public GameObject chunkPrefab;
@@ -117,10 +106,10 @@ namespace VoxelWorld
         {
             Debug.Log($"Activate Chunk Column at {worldX}:{worldZ}");
 
-            for (int gridY = worldDimensions.y - 1; gridY >= 0; gridY--)
+            for (int gridY = worldConfiguration.worldHeight - 1; gridY >= 0; gridY--)
             {
                 _profilerMarkerBuildChunk.Begin();
-                Vector3Int chunkCoordinate = new Vector3Int(worldX, gridY * chunkDimensions.y, worldZ);
+                Vector3Int chunkCoordinate = new Vector3Int(worldX, gridY * worldConfiguration.chunkDimensions.y, worldZ);
 
                 // only create a chunk when it was not already created, otherwise just switch visibility
                 if (!_worldModel.IsChunkActive(chunkCoordinate))
@@ -160,7 +149,7 @@ namespace VoxelWorld
         {
             GameObject chunkGO = Instantiate(chunkPrefab);
             Chunk chunk = chunkGO.GetComponent<Chunk>();
-            chunk.CreateChunkMeshes(coordinate, waterLevel);
+            chunk.CreateChunkMeshes(coordinate, worldConfiguration.waterLevel);
             _worldModel.AddChunk(coordinate);
             _worldModel.AddChunkToLookup(coordinate, chunk);
             _worldModel.AddChunkToCache(coordinate);
@@ -173,7 +162,7 @@ namespace VoxelWorld
             Chunk chunk = chunkGO.GetComponent<Chunk>();
 
             BlockType[] chunkData = _worldModel.chunksDataCacheLookup[coordinate];
-            BlockType[] healthData = new BlockType[WorldBuilder.blockCountPerChunk];
+            BlockType[] healthData = new BlockType[worldConfiguration.blockCountPerChunk];
             for (int i = 0; i < healthData.Length; i++)
             {
                 healthData[i] = BlockType.Nocrack;
@@ -181,7 +170,7 @@ namespace VoxelWorld
             chunk.chunkData = chunkData;
             chunk.healthData = healthData;
 
-            chunk.CreateChunkMeshes(coordinate, waterLevel, false);
+            chunk.CreateChunkMeshes(coordinate, worldConfiguration.waterLevel, false);
             _worldModel.AddChunk(coordinate);
             _worldModel.AddChunkToLookup(coordinate, chunk);
         }
@@ -191,6 +180,7 @@ namespace VoxelWorld
             // calculate the chunk count to create beforehand,there is no easy formula for this, seems to be a complex mathematical problem
             // so this just samples points in a circle and checks if its within the given radius or not
             // https://en.wikipedia.org/wiki/Gauss_circle_problem
+            int chunkColumnDrawRadius = worldConfiguration.chunkColumnDrawRadius;
             for (int x = -chunkColumnDrawRadius; x <= chunkColumnDrawRadius * 2; x++)
             {
                 for (int y = -chunkColumnDrawRadius; y <= chunkColumnDrawRadius * 2; y++)
@@ -236,11 +226,11 @@ namespace VoxelWorld
                 chunkGO.name = $"Chunk_{coordinate.x}_{coordinate.y}_{coordinate.z}";
                 Chunk chunk = chunkGO.GetComponent<Chunk>();
 
-                chunk.chunkData = new BlockType[blockCountPerChunk];
-                chunk.healthData = new BlockType[blockCountPerChunk];
+                chunk.chunkData = new BlockType[worldConfiguration.blockCountPerChunk];
+                chunk.healthData = new BlockType[worldConfiguration.blockCountPerChunk];
 
-                chunkDataIndex = createdChunkIndices[index] * blockCountPerChunk;
-                for (int i = 0; i < blockCountPerChunk; i++)
+                chunkDataIndex = createdChunkIndices[index] * worldConfiguration.blockCountPerChunk;
+                for (int i = 0; i < worldConfiguration.blockCountPerChunk; i++)
                 {
                     chunk.chunkData[i] = (BlockType)worldData.chunksData[chunkDataIndex];
                     chunk.healthData[i] = BlockType.Nocrack;
@@ -248,7 +238,7 @@ namespace VoxelWorld
                 }
 
                 profilerMarkerCreateMeshes.Begin();
-                chunk.CreateChunkMeshes(coordinate, waterLevel, false);
+                chunk.CreateChunkMeshes(coordinate, worldConfiguration.waterLevel, false);
                 profilerMarkerCreateMeshes.End();
                 _worldModel.AddChunkToLookup(coordinate, chunk);
 
@@ -283,7 +273,6 @@ namespace VoxelWorld
 
             StartCoroutine(worldUpdater.BuildQueueProcessor());
             StartCoroutine(worldUpdater.UpdateWorldMonitor());
-            //StartCoroutine(BuildExtraWorld());//TODO fix and enable this at a later point
         }
 
         private void PopulateGeneratedChunkColumns(SaveFileData worldData)
@@ -341,11 +330,11 @@ namespace VoxelWorld
 
         private void AddChunkDataToLookupCache(SaveFileData worldData, int chunkIndex, Vector3Int coordinate)
         {
-            BlockType[] chunkData = new BlockType[blockCountPerChunk];
+            BlockType[] chunkData = new BlockType[worldConfiguration.blockCountPerChunk];
 
-            for (int blockIndex = 0; blockIndex < blockCountPerChunk; blockIndex++)
+            for (int blockIndex = 0; blockIndex < worldConfiguration.blockCountPerChunk; blockIndex++)
             {
-                chunkData[blockIndex] = (BlockType)worldData.chunksData[chunkIndex * blockCountPerChunk + blockIndex];
+                chunkData[blockIndex] = (BlockType)worldData.chunksData[chunkIndex * worldConfiguration.blockCountPerChunk + blockIndex];
             }
 
             _worldModel.AddChunkDataToLookupCache(coordinate, chunkData);
@@ -362,7 +351,7 @@ namespace VoxelWorld
 
             worldBuildingStarted.Invoke(_initialChunkColumnCount);
 
-            yield return StartCoroutine(BuildChunkColumns(new Vector3(0, 0, 0), chunkColumnDrawRadius * chunkDimensions.x));
+            yield return StartCoroutine(BuildChunkColumns(new Vector3(0, 0, 0), worldConfiguration.chunkColumnDrawRadius * worldConfiguration.chunkDimensions.x));
 
             yield return Resources.UnloadUnusedAssets();
 
@@ -375,21 +364,6 @@ namespace VoxelWorld
             //StartCoroutine(BuildExtraWorld());//TODO fix and enable this at a later point
         }
 
-        private IEnumerator BuildExtraWorld()
-        {
-            for (int z = 0; z < worldDimensions.z + extraWorldDimensions.z; z++)
-            {
-                for (int x = 0; x < worldDimensions.x + extraWorldDimensions.x; x++)
-                {
-                    if (x >= worldDimensions.x || z >= worldDimensions.z)
-                    {
-                        BuildChunkColumn(x * chunkDimensions.x, z * chunkDimensions.z, false);
-                        yield return null;
-                    }
-                }
-            }
-        }
-
         /// <summary>
         /// creates a whole column of chunks, 1 chunk per frame, used during world updating
         /// </summary>
@@ -400,15 +374,15 @@ namespace VoxelWorld
         {
             stopwatchBuildWorld.Start();
 
-            (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = WorldUtils.FromWorldPosToCoordinates(playerPosition);
+            (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = WorldUtils.FromWorldPosToCoordinates(playerPosition, worldConfiguration.chunkDimensions);
 
             int startX = chunkCoordinates.x - buildRadius;
             int stopX = chunkCoordinates.x + buildRadius;
             int startZ = chunkCoordinates.z + buildRadius;
             int stopZ = chunkCoordinates.z - buildRadius;
-            for (int z = startZ; z >= stopZ; z -= chunkDimensions.z)
+            for (int z = startZ; z >= stopZ; z -= worldConfiguration.chunkDimensions.z)
             {
-                for (int x = startX; x <= stopX; x += chunkDimensions.x)
+                for (int x = startX; x <= stopX; x += worldConfiguration.chunkDimensions.x)
                 {
                     Vector3Int possibleNewChunkCoordinate = new Vector3Int(x, chunkCoordinates.y, z);
                     if (Vector3Int.Distance(possibleNewChunkCoordinate, chunkCoordinates) <= buildRadius)

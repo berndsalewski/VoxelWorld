@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.Profiling;
 
 namespace VoxelWorld
 {
@@ -10,6 +9,7 @@ namespace VoxelWorld
     {
         public GameObject highlightBlock;
         public GameObject firstPersonController;
+        public WorldConfiguration worldConfiguration;
 
         public Vector3 position
         {
@@ -98,7 +98,7 @@ namespace VoxelWorld
                 hitBlock = hit.point + hit.normal * Block.HALF_BLOCK_SIZE;
             }
 
-            (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(hitBlock);
+            (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(hitBlock, worldConfiguration.chunkDimensions);
             Chunk thisChunk = _worldModel.GetChunk(chunkPosition);
             int currentBlockIndex = Chunk.ToBlockIndex(blockPosition);
 
@@ -118,12 +118,12 @@ namespace VoxelWorld
 
                         // takes care of dropping blocks
                         Vector3Int aboveBlock = blockPosition + Vector3Int.up;
-                        (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, aboveBlock);
+                        (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, aboveBlock, worldConfiguration.chunkDimensions);
                         int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                         StartCoroutine(worldUpdater.HandleBlockDropping(_worldModel.GetChunk(adjustedChunkPos), aboveBlockIndex));
                     }
 
-                    StartCoroutine(thisChunk.HealBlock(currentBlockIndex, worldBuilder.waterLevel));
+                    StartCoroutine(thisChunk.HealBlock(currentBlockIndex, worldConfiguration.waterLevel));
                 }
             }
             // build block with right mouse button
@@ -136,7 +136,7 @@ namespace VoxelWorld
                 StartCoroutine(worldUpdater.HandleBlockDropping(thisChunk, currentBlockIndex));
             }
 
-            thisChunk.Redraw(worldBuilder.waterLevel);
+            thisChunk.Redraw(worldConfiguration.waterLevel);
         }
 
         /// <summary>
@@ -146,8 +146,8 @@ namespace VoxelWorld
         {
             Debug.Log("Spawn Player");
 
-            float posX = WorldBuilder.chunkDimensions.x * 0.5f;
-            float posZ = WorldBuilder.chunkDimensions.z * 0.5f;
+            float posX = worldConfiguration.chunkDimensions.x * 0.5f;
+            float posZ = worldConfiguration.chunkDimensions.z * 0.5f;
 
             // get the height of the surface at the spawn position
             float posY = MeshUtils.fBM(
@@ -175,7 +175,7 @@ namespace VoxelWorld
         {
             if (didRaycastHitACollider)
             {
-                (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition);
+                (Vector3Int chunkPosition, Vector3Int blockPosition) = WorldUtils.FromWorldPosToCoordinates(selectedBlockWorldPosition, worldConfiguration.chunkDimensions);
                 int blockIndex = Chunk.ToBlockIndex(blockPosition);
                 Chunk chunk = _worldModel.GetChunk(chunkPosition);
                 BlockType blockType = chunk.chunkData[blockIndex];

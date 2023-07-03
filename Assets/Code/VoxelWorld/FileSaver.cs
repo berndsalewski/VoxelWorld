@@ -23,7 +23,7 @@ namespace VoxelWorld
             return filePath.ToString();
         }
 
-        static public void Save(Player player)
+        static public void Save(Player player, int blockCountPerChunk)
         {
             WorldDataModel worldModel = WorldDataModel.Instance;
             string fileName = BuildSaveFileName();
@@ -35,7 +35,9 @@ namespace VoxelWorld
             FileStream file = File.Open(fileName, FileMode.OpenOrCreate);
             saveFile = new SaveFileData(
                 worldModel,
-                player.position);
+                player.position,
+                blockCountPerChunk
+                );
 
             bf.Serialize(file, saveFile);
             file.Close();

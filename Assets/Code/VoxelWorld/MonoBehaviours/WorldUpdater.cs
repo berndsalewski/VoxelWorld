@@ -6,6 +6,8 @@ namespace VoxelWorld
 {
     public class WorldUpdater : MonoBehaviour
     {
+        public WorldConfiguration worldConfiguration;
+
         // at which player position did we last trigger the addition of new chunks
         [HideInInspector]
         public Vector3 lastPlayerPositionTriggeringNewChunks;
@@ -42,7 +44,11 @@ namespace VoxelWorld
             while (true)
             {
                 Vector3Int thisBlockPos = Chunk.ToBlockCoordinates(blockIndex);
-                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinate, thisBlockPos + Vector3Int.down);
+                (Vector3Int chunkPosOfBelowBlock, Vector3Int adjustedBelowBlockPos) = WorldUtils.AdjustCoordinatesToGrid(
+                    chunk.coordinate,
+                    thisBlockPos + Vector3Int.down,
+                    worldConfiguration.chunkDimensions
+                    );
                 int belowBlockIndex = Chunk.ToBlockIndex(adjustedBelowBlockPos);
                 Chunk chunkOfBelowBlock = _worldModel.GetChunk(chunkPosOfBelowBlock);
                 if (chunkOfBelowBlock?.chunkData[belowBlockIndex] == BlockType.Air)
@@ -55,16 +61,20 @@ namespace VoxelWorld
 
                     // test if there is now a droppable block above this new air block
                     Vector3Int aboveBlock = thisBlockPos + Vector3Int.up;
-                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(chunk.coordinate, aboveBlock);
+                    (Vector3Int adjustedChunkPos, Vector3Int adjustedBlockPosition) = WorldUtils.AdjustCoordinatesToGrid(
+                        chunk.coordinate,
+                        aboveBlock,
+                        worldConfiguration.chunkDimensions
+                        );
                     int aboveBlockIndex = Chunk.ToBlockIndex(adjustedBlockPosition);
                     StartCoroutine(HandleBlockDropping(_worldModel.GetChunk(adjustedChunkPos), aboveBlockIndex));
 
                     yield return new WaitForSeconds(0.1f);
 
-                    chunk.Redraw(worldBuilder.waterLevel);
+                    chunk.Redraw(worldConfiguration.waterLevel);
                     if (chunkOfBelowBlock != chunk)
                     {
-                        chunkOfBelowBlock.Redraw(worldBuilder.waterLevel);
+                        chunkOfBelowBlock.Redraw(worldConfiguration.waterLevel);
                     }
 
                     chunk = chunkOfBelowBlock;
@@ -94,7 +104,11 @@ namespace VoxelWorld
             }
 
             Vector3Int neighbourPosition = blockPosition + neighbourDirection;
-            (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = WorldUtils.AdjustCoordinatesToGrid(chunkPosition, neighbourPosition);
+            (Vector3Int neighbourChunkPos, Vector3Int neighbourBlockPos) = WorldUtils.AdjustCoordinatesToGrid(
+                chunkPosition,
+                neighbourPosition,
+                worldConfiguration.chunkDimensions
+                );
 
             int neighbourBlockIndex = Chunk.ToBlockIndex(neighbourBlockPos);
             Chunk neighbourChunk = _worldModel.GetChunk(neighbourChunkPos);
@@ -105,7 +119,7 @@ namespace VoxelWorld
                 Debug.Log($"Flow");
                 neighbourChunk.chunkData[neighbourBlockIndex] = _worldModel.GetChunk(chunkPosition).chunkData[Chunk.ToBlockIndex(blockPosition)];
                 neighbourChunk.healthData[neighbourBlockIndex] = BlockType.Nocrack;
-                neighbourChunk.Redraw(worldBuilder.waterLevel);
+                neighbourChunk.Redraw(worldConfiguration.waterLevel);
                 StartCoroutine(HandleBlockDropping(neighbourChunk, neighbourBlockIndex, strength--));
             }
             else
@@ -121,17 +135,17 @@ namespace VoxelWorld
             while (true)
             {
                 //TODO currently only works if chunk dimensions are uniform
-                int minWalkDistance = WorldBuilder.chunkDimensions.x;
+                int minWalkDistance = worldConfiguration.chunkDimensions.x;
                 float walkedDistance = (lastPlayerPositionTriggeringNewChunks - player.position).magnitude;
                 if (walkedDistance > minWalkDistance)
                 {
                     lastPlayerPositionTriggeringNewChunks = player.position;
 
-                    (Vector3Int chunkCoordinate, Vector3Int blockCoordinate) = WorldUtils.FromWorldPosToCoordinates(player.position);
+                    (Vector3Int chunkCoordinate, Vector3Int blockCoordinate) = WorldUtils.FromWorldPosToCoordinates(player.position, worldConfiguration.chunkDimensions);
                     Vector2Int chunkColumnCoordinates = new Vector2Int(chunkCoordinate.x, chunkCoordinate.z);
                     buildQueue.Enqueue(HideChunkColumns(chunkColumnCoordinates));
 
-                    buildQueue.Enqueue(worldBuilder.BuildChunkColumns(player.position, worldBuilder.chunkColumnDrawRadius * WorldBuilder.chunkDimensions.x));
+                    buildQueue.Enqueue(worldBuilder.BuildChunkColumns(player.position, worldConfiguration.chunkColumnDrawRadius * worldConfiguration.chunkDimensions.x));
                 }
                 yield return new WaitForSeconds(0.5f);
             }
@@ -164,7 +178,7 @@ namespace VoxelWorld
             //TODO Improvement: we don't need to iterate all columns, only the visible ones
             foreach (Vector2Int column in _worldModel.chunkColumns)
             {
-                if ((column - currentChunkColumnCoordinate).magnitude > worldBuilder.chunkColumnDrawRadius * WorldBuilder.chunkDimensions.x)
+                if ((column - currentChunkColumnCoordinate).magnitude > worldConfiguration.chunkColumnDrawRadius * worldConfiguration.chunkDimensions.x)
                 {
                     HideChunkColumn(column.x, column.y);
                 }
@@ -177,9 +191,9 @@ namespace VoxelWorld
         /// </summary>
         private void HideChunkColumn(int worldX, int worldZ)
         {
-            for (int y = 0; y < worldBuilder.worldDimensions.y; y++)
+            for (int y = 0; y < worldConfiguration.worldHeight; y++)
             {
-                Vector3Int coordinate = new Vector3Int(worldX, y * WorldBuilder.chunkDimensions.y, worldZ);
+                Vector3Int coordinate = new Vector3Int(worldX, y * worldConfiguration.chunkDimensions.y, worldZ);
                 if (_worldModel.IsChunkActive(coordinate))
                 {
                     _worldModel.GetChunk(coordinate).meshRendererSolidBlocks.enabled = false;

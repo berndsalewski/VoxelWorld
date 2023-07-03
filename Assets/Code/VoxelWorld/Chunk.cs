@@ -18,8 +18,12 @@ namespace VoxelWorld
     /// </summary>
     public class Chunk : MonoBehaviour
     {
+        static private Vector3Int _chunkDimensions = Vector3Int.zero;
+        static private bool _isStaticInitialized; 
+
         public Material solidBlocks;
         public Material waterBlocks;
+        public WorldConfiguration worldConfiguration;
 
         [HideInInspector]
         public Vector3Int coordinate;
@@ -46,6 +50,7 @@ namespace VoxelWorld
         private CalculateBlockTypesJob calculateBlockTypes;
         private JobHandle jobHandle;
 
+
         /// <summary>
         /// calculates relative chunk position from the index of a block
         /// </summary>
@@ -55,9 +60,9 @@ namespace VoxelWorld
             // y = (i / width) % height
             // z = i / (width * height)
             return new Vector3Int(
-                index % WorldBuilder.chunkDimensions.x,
-                (index / WorldBuilder.chunkDimensions.x) % WorldBuilder.chunkDimensions.y,
-                index / (WorldBuilder.chunkDimensions.x * WorldBuilder.chunkDimensions.y));
+                index % _chunkDimensions.x,
+                (index / _chunkDimensions.x) % _chunkDimensions.y,
+                index / (_chunkDimensions.x * _chunkDimensions.y));
         }
 
         /// <summary>
@@ -66,7 +71,19 @@ namespace VoxelWorld
         public static int ToBlockIndex(Vector3Int coordinates)
         {
             // i = x + WIDTH * (y + DEPTH * z)
-            return coordinates.x + WorldBuilder.chunkDimensions.x * (coordinates.y + WorldBuilder.chunkDimensions.z * coordinates.z);
+            return coordinates.x + _chunkDimensions.x * (coordinates.y + _chunkDimensions.z * coordinates.z);
+        }
+
+        private void Awake()
+        {
+            if (_isStaticInitialized)
+            {
+                return;
+            }
+
+            _chunkDimensions.x = worldConfiguration.chunkDimensions.x;
+            _chunkDimensions.y = worldConfiguration.chunkDimensions.y;
+            _chunkDimensions.z = worldConfiguration.chunkDimensions.z;
         }
 
         /// <summary>
@@ -74,7 +91,7 @@ namespace VoxelWorld
         /// </summary>
         private void GenerateChunkData(int waterLevel)
         {
-            int blockCount = WorldBuilder.blockCountPerChunk;
+            int blockCount = worldConfiguration.blockCountPerChunk;
             chunkData = new BlockType[blockCount];
             healthData = new BlockType[blockCount];
             NativeArray<BlockType> blockTypes = new NativeArray<BlockType>(chunkData, Allocator.Persistent);
@@ -95,8 +112,8 @@ namespace VoxelWorld
             {
                 cData = blockTypes,
                 hData = healthTypes,
-                width = WorldBuilder.chunkDimensions.x,
-                height = WorldBuilder.chunkDimensions.y,
+                width = _chunkDimensions.x,
+                height = _chunkDimensions.y,
                 chunkCoordinate = coordinate,
                 randoms = RandomArray,
                 waterLevel = waterLevel
@@ -215,15 +232,15 @@ namespace VoxelWorld
                 DestroyImmediate(fluidMesh.GetComponent<Collider>());
             }
 
-            blocks = new Block[WorldBuilder.chunkDimensions.x, WorldBuilder.chunkDimensions.y, WorldBuilder.chunkDimensions.z];
+            blocks = new Block[_chunkDimensions.x, _chunkDimensions.y, _chunkDimensions.z];
 
             // run this 2 times, 1. for the solid blocks 2. for the water blocks
             for (int pass = 0; pass < 2; pass++)
             {
                 var mergeBlockMeshesJob = new MergeBlockMeshesJob()
                 {
-                    vertexStartIndices = new NativeArray<int>(WorldBuilder.blockCountPerChunk, Allocator.TempJob, NativeArrayOptions.UninitializedMemory),
-                    trianglesStartIndices = new NativeArray<int>(WorldBuilder.blockCountPerChunk, Allocator.TempJob, NativeArrayOptions.UninitializedMemory)
+                    vertexStartIndices = new NativeArray<int>(worldConfiguration.blockCountPerChunk, Allocator.TempJob, NativeArrayOptions.UninitializedMemory),
+                    trianglesStartIndices = new NativeArray<int>(worldConfiguration.blockCountPerChunk, Allocator.TempJob, NativeArrayOptions.UninitializedMemory)
                 };
 
                 var inputBlockMeshes = new List<Mesh>();
@@ -234,9 +251,9 @@ namespace VoxelWorld
                 profilerMarkerCreateBlockMeshes.Begin();
 
                 //create the blocks and prepare data for the merge job
-                int yCount = WorldBuilder.chunkDimensions.y;
-                int xCount = WorldBuilder.chunkDimensions.x;
-                int zCount = WorldBuilder.chunkDimensions.z;
+                int yCount = _chunkDimensions.y;
+                int xCount = _chunkDimensions.x;
+                int zCount = _chunkDimensions.z;
                 for (int z = 0; z < zCount; z++)
                 {
                     for (int y = 0; y < yCount; y++)
@@ -255,7 +272,8 @@ namespace VoxelWorld
                                 blockCoordinates,
                                 coordinate,
                                 chunkData[blockIndex],
-                                healthData[blockIndex]);
+                                healthData[blockIndex],
+                                worldConfiguration);
 
                             profilerMarkerCreateSingleBlock.End();
 

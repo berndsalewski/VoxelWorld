@@ -9,6 +9,8 @@ namespace VoxelWorld.Tests
 {
     public class WorldTests
     {
+        private Vector3Int _chunkDimensions;
+
         static object[] GetTestCaseDataForWorldPositionToCoordinates()
         {
             return new[] {
@@ -24,7 +26,7 @@ namespace VoxelWorld.Tests
         [SetUp]
         public void SetUp()
         {
-            WorldBuilder.chunkDimensions = new Vector3Int(10, 10, 10);
+            _chunkDimensions = new Vector3Int(10, 10, 10);
         }
 
         [TestCaseSource(nameof(GetTestCaseDataForWorldPositionToCoordinates))]
@@ -33,7 +35,7 @@ namespace VoxelWorld.Tests
             Vector3Int expectedChunkCoordinates,
             Vector3Int expectedBlockCoordinates)
         {
-            (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = WorldUtils.FromWorldPosToCoordinates(toBeTested);
+            (Vector3Int chunkCoordinates, Vector3Int blockCoordinates) = WorldUtils.FromWorldPosToCoordinates(toBeTested, _chunkDimensions);
 
             Assert.That(chunkCoordinates, Is.EqualTo(expectedChunkCoordinates).Using(Vector3EqualityComparer.Instance));
             Assert.That(blockCoordinates, Is.EqualTo(expectedBlockCoordinates).Using(Vector3EqualityComparer.Instance));
