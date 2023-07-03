@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   solidBlocks: {fileID: 2100000, guid: 5f65cd4444a9a4b73ae7858fc29cc7b5, type: 2}
   waterBlocks: {fileID: 2100000, guid: 86b0d5f679ec7401d8b00252c118d8b5, type: 2}
-  gameConfiguration: {fileID: 11400000, guid: c2314bd723e8141aeaf78e471e1cf1bb, type: 2}
+  worldConfiguration: {fileID: 11400000, guid: c2314bd723e8141aeaf78e471e1cf1bb, type: 2}
   coordinate: {x: 0, y: 0, z: 0}
   chunkData: 
   healthData: 
