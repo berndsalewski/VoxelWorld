@@ -11,7 +11,6 @@ namespace VoxelWorld
     {
         public TMP_Dropdown worldSelector;
         public TMP_InputField inputWorldName;
-        //private string[] _saveFileNames;
         private List<string> saveFiles;
 
         // Start is called before the first frame update
@@ -25,9 +24,7 @@ namespace VoxelWorld
         {
             SessionGameData.loadFromFile = true;
 
-            int fileEndingStart = saveFiles[worldSelector.value].Length - FileSaver.SAVE_FILE_ENDING.Length;
-            string worldFileName = saveFiles[worldSelector.value].Remove(fileEndingStart);
-            SessionGameData.worldFileName = worldFileName;
+            WriteSelectedWorldNameToSessionData();
 
             SceneManager.LoadScene((int)SceneIndex.voxelWorld);
         }
@@ -45,7 +42,7 @@ namespace VoxelWorld
         }
 
         public void DeleteSelectedSaveFile()
-        { 
+        {
             File.Delete(FileSaver.saveFileDirectory + saveFiles[worldSelector.value]);
             UpdateAvailableSaveFiles();
         }
@@ -76,6 +73,13 @@ namespace VoxelWorld
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+        }
+
+        private void WriteSelectedWorldNameToSessionData()
+        {
+            int fileEndingStart = saveFiles[worldSelector.value].Length - FileSaver.SAVE_FILE_ENDING.Length;
+            string worldFileName = saveFiles[worldSelector.value].Remove(fileEndingStart);
+            SessionGameData.worldFileName = worldFileName;
         }
     }
 }
