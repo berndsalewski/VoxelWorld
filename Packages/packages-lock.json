@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.rngtm.asset-bookmarker": {
+      "version": "https://github.com/rngtm/Unity-AssetBookmarker.git?path=Assets/AssetBookmarker",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "a4e37c087399ddaf412ff17016b2ddaea563d676"
+    },
     "com.unity.2d.sprite": {
       "version": "1.0.0",
       "depth": 0,
