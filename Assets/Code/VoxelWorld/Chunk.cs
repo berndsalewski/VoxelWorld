@@ -19,11 +19,17 @@ namespace VoxelWorld
     public class Chunk : MonoBehaviour
     {
         static private Vector3Int _chunkDimensions = Vector3Int.zero;
-        static private bool _isStaticInitialized; 
+        static private bool _isStaticInitialized;
 
         public Material solidBlocks;
         public Material waterBlocks;
         public WorldConfiguration worldConfiguration;
+        public PerlinSettings surfaceSettings;
+        public PerlinSettings stoneSettings;
+        public PerlinSettings diamondTopSettings;
+        public PerlinSettings diamondBottomSettings;
+        public Perlin3DSettings caveSettings;
+        public Perlin3DSettings treeSettings;
 
         [HideInInspector]
         public Vector3Int coordinate;
@@ -116,7 +122,13 @@ namespace VoxelWorld
                 height = _chunkDimensions.y,
                 chunkCoordinate = coordinate,
                 randoms = RandomArray,
-                waterLevel = waterLevel
+                waterLevel = waterLevel,
+                surfaceSettings = surfaceSettings.ToValueType(),
+                stoneSettings = stoneSettings.ToValueType(),
+                diamondTopSettings = diamondTopSettings.ToValueType(),
+                diamondBottomSettings = diamondBottomSettings.ToValueType(),
+                caveSettings = caveSettings.ToValueType(),
+                treeSettings = treeSettings.ToValueType()
             };
 
             jobHandle = calculateBlockTypes.Schedule(chunkData.Length, 64);
@@ -487,6 +499,14 @@ namespace VoxelWorld
             public Vector3 chunkCoordinate;
             public int waterLevel;
 
+            public PerlinSettings.Settings surfaceSettings;
+            public PerlinSettings.Settings stoneSettings;
+            public PerlinSettings.Settings diamondTopSettings;
+            public PerlinSettings.Settings diamondBottomSettings;
+
+            public Perlin3DSettings.Settings caveSettings;
+            public Perlin3DSettings.Settings treeSettings;
+
             public NativeArray<BlockType> cData;
             public NativeArray<BlockType> hData;
             public NativeArray<Unity.Mathematics.Random> randoms;
@@ -502,42 +522,36 @@ namespace VoxelWorld
                 int surfaceHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    WorldBuilder.surfaceSettings.octaves,
-                    WorldBuilder.surfaceSettings.scale,
-                    WorldBuilder.surfaceSettings.heightScale,
-                    WorldBuilder.surfaceSettings.heightOffset));
+                    surfaceSettings.octaves,
+                    surfaceSettings.scale,
+                    surfaceSettings.heightScale,
+                    surfaceSettings.heightOffset));
 
                 int stoneHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    WorldBuilder.stoneSettings.octaves,
-                    WorldBuilder.stoneSettings.scale,
-                    WorldBuilder.stoneSettings.heightScale,
-                    WorldBuilder.stoneSettings.heightOffset));
+                    stoneSettings.octaves,
+                    stoneSettings.scale,
+                    stoneSettings.heightScale,
+                    stoneSettings.heightOffset));
 
                 int diamondTopHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    WorldBuilder.diamondTopSettings.octaves,
-                    WorldBuilder.diamondTopSettings.scale,
-                    WorldBuilder.diamondTopSettings.heightScale,
-                    WorldBuilder.diamondTopSettings.heightOffset));
+                    diamondTopSettings.octaves,
+                    diamondTopSettings.scale,
+                    diamondTopSettings.heightScale,
+                    diamondTopSettings.heightOffset));
 
                 int diamondBottomHeight = Mathf.RoundToInt(MeshUtils.fBM(
                     xPos,
                     zPos,
-                    WorldBuilder.diamondBottomSettings.octaves,
-                    WorldBuilder.diamondBottomSettings.scale,
-                    WorldBuilder.diamondBottomSettings.heightScale,
-                    WorldBuilder.diamondBottomSettings.heightOffset));
+                    diamondBottomSettings.octaves,
+                    diamondBottomSettings.scale,
+                    diamondBottomSettings.heightScale,
+                    diamondBottomSettings.heightOffset));
 
                 hData[i] = BlockType.Nocrack;
-
-                float digCave = MeshUtils.fBM3D(xPos, yPos, zPos, WorldBuilder.caveSettings.octaves, WorldBuilder.caveSettings.scale,
-                    WorldBuilder.caveSettings.heightScale, WorldBuilder.caveSettings.heightOffset);
-
-                float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, WorldBuilder.treeSettings.octaves, WorldBuilder.treeSettings.scale,
-                    WorldBuilder.treeSettings.heightScale, WorldBuilder.treeSettings.heightOffset);
 
                 if (yPos == 0)
                 {
@@ -556,7 +570,10 @@ namespace VoxelWorld
                 }
                 else if (yPos == surfaceHeight)
                 {
-                    if (plantTree < WorldBuilder.treeSettings.drawCutOff && random.NextFloat() <= 0.2f)
+                    float plantTree = MeshUtils.fBM3D(xPos, yPos, zPos, treeSettings.octaves, treeSettings.scale,
+                    treeSettings.heightScale, treeSettings.heightOffset);
+
+                    if (plantTree < treeSettings.drawCutOff && random.NextFloat() <= 0.1f)
                     {
                         cData[i] = BlockType.Woodbase;
                     }
@@ -565,15 +582,16 @@ namespace VoxelWorld
                         cData[i] = BlockType.GrassTop;
                     }
                 }
-                else if (digCave < WorldBuilder.caveSettings.drawCutOff)
+                else if (MeshUtils.fBM3D(xPos, yPos, zPos, caveSettings.octaves, caveSettings.scale,
+                    caveSettings.heightScale, caveSettings.heightOffset) < caveSettings.drawCutOff)
                 {
                     cData[i] = BlockType.Air;
                 }
-                else if (yPos < stoneHeight && random.NextFloat() < WorldBuilder.stoneSettings.probability)
+                else if (yPos < stoneHeight && random.NextFloat() < stoneSettings.probability)
                 {
                     cData[i] = BlockType.Stone;
                 }
-                else if (yPos > diamondBottomHeight && yPos < diamondTopHeight && random.NextFloat() < WorldBuilder.diamondTopSettings.probability)
+                else if (yPos > diamondBottomHeight && yPos < diamondTopHeight && random.NextFloat() < diamondTopSettings.probability)
                 {
                     cData[i] = BlockType.Diamond;
                 }

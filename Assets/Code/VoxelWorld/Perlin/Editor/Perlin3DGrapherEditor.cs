@@ -6,10 +6,24 @@ namespace VoxelWorld.Editor
     [CustomEditor(typeof(Perlin3DGrapher))]
     public class Perlin3DGrapherEditor : UnityEditor.Editor
     {
+        UnityEditor.Editor configurationEditor;
+
+        public void OnEnable()
+        {
+            configurationEditor = null;
+        }
+
         public override void OnInspectorGUI()
         {
             Perlin3DGrapher grapher = target as Perlin3DGrapher;
             DrawDefaultInspector();
+
+            if (configurationEditor == null)
+            {
+                configurationEditor = CreateEditor(grapher.perlin3DConfig);
+            }
+
+            configurationEditor.DrawDefaultInspector();
 
             if (GUILayout.Button("Draw"))
             {

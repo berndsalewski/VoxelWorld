@@ -6,18 +6,8 @@ namespace VoxelWorld
     public class PerlinGrapher : MonoBehaviour
     {
         public LineRenderer lineRenderer;
-        [Range(1, 10)]
-        public float heightScale = 1;
-        [Range(0.01f, 1)]
-        public float scale = 1f;
-        [Range(1, 10)]
-        public int octaves = 1;
-        [Range(-20, 20)]
-        public float heightOffset = 0;
-        [Range(0, 1)]
-        public float probability = 1;
+        public PerlinSettings perlinSettings;
 
-        // Start is called before the first frame update
         void Start()
         {
             lineRenderer = GetComponent<LineRenderer>();
@@ -31,7 +21,7 @@ namespace VoxelWorld
             Vector3[] positions = new Vector3[lineRenderer.positionCount];
             for (int x = 0; x < lineRenderer.positionCount; x++)
             {
-                float y = MeshUtils.fBM(x, z, octaves, scale, heightScale, heightOffset);
+                float y = MeshUtils.fBM(x, z, perlinSettings.octaves, perlinSettings.scale, perlinSettings.heightScale, perlinSettings.heightOffset);
                 positions[x] = new Vector3(x, y, z);
             }
             lineRenderer.SetPositions(positions);

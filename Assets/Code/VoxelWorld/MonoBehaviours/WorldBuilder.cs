@@ -25,32 +25,16 @@ namespace VoxelWorld
 
         public WorldConfiguration worldConfiguration;
 
-        /// <summary>
-        /// unit is number of blocks
-        /// </summary>
-        
+        public PerlinSettings perlinSettingsSurfaceLayer;
+        public PerlinSettings perlinSettingsStoneLayer;
+        public PerlinSettings perlinSettingsDiamondsTopLayer;
+        public PerlinSettings perlinSettingsDiamondsBottomLayer;
+        public Perlin3DSettings perlin3DSettingsCaves;
+        public Perlin3DSettings perlin3DSettingsTrees;
 
         [Header("References")]
         public GameObject chunkPrefab;
         public GameObject mainCamera;
-
-        public static PerlinSettings surfaceSettings;
-        public PerlinGrapher surface;
-
-        public static PerlinSettings stoneSettings;
-        public PerlinGrapher stone;
-
-        public static PerlinSettings diamondTopSettings;
-        public PerlinGrapher diamondTop;
-
-        public static PerlinSettings diamondBottomSettings;
-        public PerlinGrapher diamondBottom;
-
-        public static Perlin3DSettings caveSettings;
-        public Perlin3DGrapher caves;
-
-        public static Perlin3DSettings treeSettings;
-        public Perlin3DGrapher trees;
 
         [SerializeField]
         private Player player;
@@ -73,13 +57,6 @@ namespace VoxelWorld
         private void Start()
         {
             _worldModel = WorldDataModel.Instance;
-
-            surfaceSettings = new PerlinSettings(surface.heightScale, surface.scale, surface.octaves, surface.heightOffset, surface.probability);
-            stoneSettings = new PerlinSettings(stone.heightScale, stone.scale, stone.octaves, stone.heightOffset, stone.probability);
-            diamondTopSettings = new PerlinSettings(diamondTop.heightScale, diamondTop.scale, diamondTop.octaves, diamondTop.heightOffset, diamondTop.probability);
-            diamondBottomSettings = new PerlinSettings(diamondBottom.heightScale, diamondBottom.scale, diamondBottom.octaves, diamondBottom.heightOffset, diamondBottom.probability);
-            caveSettings = new Perlin3DSettings(caves.heightScale, caves.scale, caves.octaves, caves.heightOffset, caves.DrawCutOff);
-            treeSettings = new Perlin3DSettings(trees.heightScale, trees.scale, trees.octaves, trees.heightOffset, trees.DrawCutOff);
 
             CalculateInitialChunkColumnCount();
 
@@ -213,8 +190,6 @@ namespace VoxelWorld
             PopulateGeneratedChunkColumns(worldData);
 
             worldBuildingStarted.Invoke(_initialChunkColumnCount * 3);
-
-            int chunkDataIndex = 0;
             int index = 0;
             foreach (Vector3Int coordinate in _worldModel.chunks)
             {
@@ -229,7 +204,7 @@ namespace VoxelWorld
                 chunk.chunkData = new BlockType[worldConfiguration.blockCountPerChunk];
                 chunk.healthData = new BlockType[worldConfiguration.blockCountPerChunk];
 
-                chunkDataIndex = createdChunkIndices[index] * worldConfiguration.blockCountPerChunk;
+                int chunkDataIndex = createdChunkIndices[index] * worldConfiguration.blockCountPerChunk;
                 for (int i = 0; i < worldConfiguration.blockCountPerChunk; i++)
                 {
                     chunk.chunkData[i] = (BlockType)worldData.chunksData[chunkDataIndex];

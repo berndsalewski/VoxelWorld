@@ -1,20 +1,40 @@
-﻿namespace VoxelWorld
+using UnityEngine;
+
+namespace VoxelWorld
 {
-    public struct PerlinSettings
+    [CreateAssetMenu(fileName = "PerlinConfiguration", menuName = "VoxelWorld/Perlin Configuration")]
+    public class PerlinSettings : ScriptableObject
     {
+        [Range(1, 10)]
         public float heightScale;
+        [Range(0.01f, 1)]
         public float scale;
+        [Range(1, 10)]
         public int octaves;
+        [Range(-20, 20)]
         public float heightOffset;
+        [Range(0, 1)]
         public float probability;
 
-        public PerlinSettings(float heightScale, float scale, int octaves, float heightOffset, float probability)
+        public Settings ToValueType()
         {
-            this.heightScale = heightScale;
-            this.scale = scale;
-            this.octaves = octaves;
-            this.heightOffset = heightOffset;
-            this.probability = probability;
+            return new Settings()
+            {
+                heightScale = heightScale,
+                scale = scale,
+                octaves = octaves,
+                heightOffset = heightOffset,
+                probability = probability
+            };
+        }
+
+        public struct Settings
+        {
+            public float heightScale;
+            public float scale;
+            public int octaves;
+            public float heightOffset;
+            public float probability;
         }
     }
 }

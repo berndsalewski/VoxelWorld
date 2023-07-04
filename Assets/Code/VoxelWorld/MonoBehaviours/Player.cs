@@ -10,6 +10,7 @@ namespace VoxelWorld
         public GameObject highlightBlock;
         public GameObject firstPersonController;
         public WorldConfiguration worldConfiguration;
+        public PerlinSettings surfaceSettings;
 
         public Vector3 position
         {
@@ -153,10 +154,10 @@ namespace VoxelWorld
             float posY = MeshUtils.fBM(
                 posX,
                 posZ,
-                WorldBuilder.surfaceSettings.octaves,
-                WorldBuilder.surfaceSettings.scale,
-                WorldBuilder.surfaceSettings.heightScale,
-                WorldBuilder.surfaceSettings.heightOffset);
+                surfaceSettings.octaves,
+                surfaceSettings.scale,
+                surfaceSettings.heightScale,
+                surfaceSettings.heightOffset);
 
             float verticalOffset = 3;
             firstPersonController.transform.position = new Vector3(posX, posY + verticalOffset, posZ);

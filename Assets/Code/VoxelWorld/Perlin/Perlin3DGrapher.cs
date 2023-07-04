@@ -7,20 +7,7 @@ namespace VoxelWorld
     {
         Vector3 dimensions = new Vector3(15, 15, 15);
 
-        [Range(1, 10)]
-        public float heightScale = 1;
-
-        [Range(0.01f, 1)]
-        public float scale = 1f;
-
-        [Range(1, 10)]
-        public int octaves = 1;
-
-        [Range(-20, 20)]
-        public float heightOffset = 0;
-
-        [Range(1, 10)]
-        public float DrawCutOff = 1;
+        public Perlin3DSettings perlin3DConfig;
 
         private void CreateCubes()
         {
@@ -61,9 +48,9 @@ namespace VoxelWorld
                 {
                     for (int x = 0; x < dimensions.x; x++)
                     {
-                        float p3d = MeshUtils.fBM3D(x, y, z, octaves, scale, heightScale, heightOffset);
+                        float p3d = MeshUtils.fBM3D(x, y, z, perlin3DConfig.octaves, perlin3DConfig.scale, perlin3DConfig.heightScale, perlin3DConfig.heightOffset);
                         Debug.Log($"value {p3d}");
-                        if (p3d < DrawCutOff)
+                        if (p3d < perlin3DConfig.drawCutOff)
                         {
                             cubes[x + (int)dimensions.x * (y + (int)dimensions.z * z)].enabled = true;
                         }
