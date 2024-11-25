@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 014f0fae0cc7e4120b051d2bb2a32168, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  solidBlocks: {fileID: 2100000, guid: 5f65cd4444a9a4b73ae7858fc29cc7b5, type: 2}
+  solidBlocks: {fileID: 2100000, guid: 7117910ef1aca454288414c2fa64da43, type: 2}
   waterBlocks: {fileID: 2100000, guid: 86b0d5f679ec7401d8b00252c118d8b5, type: 2}
   worldConfiguration: {fileID: 11400000, guid: c2314bd723e8141aeaf78e471e1cf1bb, type: 2}
   surfaceSettings: {fileID: 11400000, guid: fc33476a7c3784e0eae89616371a847b, type: 2}
