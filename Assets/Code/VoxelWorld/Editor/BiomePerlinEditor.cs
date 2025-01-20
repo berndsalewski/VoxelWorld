@@ -61,19 +61,19 @@
 				EditorGUIUtility.systemCopyBuffer = $"{col.r}f, {col.g}f, {col.b}f, {col.a}f";
 			}
 
-			for(int x = 0; x < 200; x++)
-			{
-				for (int y = 0; y < 200; y++)
-				{
-					GetBiomeAt(x,y);
-				}
-			}
+			// for(int x = 0; x < 200; x++)
+			// {
+			// 	for (int y = 0; y < 200; y++)
+			// 	{
+			// 		GetBiomeAt(x,y);
+			// 	}
+			// }
 		}
 
-        private void GetBiomeAt(int x, int y)
-        {
-            throw new NotImplementedException();
-        }
+        // private void GetBiomeAt(int x, int y)
+        // {
+        //     throw new NotImplementedException();
+        // }
 
         private void OnDisable()
 		{
