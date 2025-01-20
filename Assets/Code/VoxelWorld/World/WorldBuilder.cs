@@ -20,11 +20,10 @@ namespace VoxelWorld
         public UnityEvent<int> worldBuildingUpdated;
         public UnityEvent worldBuildingEnded;
 
-        //TODO configuration in a scriptable object
         [Header("World Configuration")]
-
         public WorldConfiguration worldConfiguration;
 
+        [Header("Perlin Noise")]
         public PerlinSettings perlinSettingsSurfaceLayer;
         public PerlinSettings perlinSettingsStoneLayer;
         public PerlinSettings perlinSettingsDiamondsTopLayer;
@@ -32,7 +31,7 @@ namespace VoxelWorld
         public Perlin3DSettings perlin3DSettingsCaves;
         public Perlin3DSettings perlin3DSettingsTrees;
 
-        [Header("References")]
+        [Header("GameObject References")]
         public GameObject chunkPrefab;
         public GameObject mainCamera;
 
@@ -60,9 +59,9 @@ namespace VoxelWorld
 
             CalculateInitialChunkColumnCount();
 
-            if (SessionGameData.loadFromFile)
+            if (SessionGameData.LoadFromFile)
             {
-                StartCoroutine(BuildWorldFromSaveFile());
+                StartCoroutine(BuildWorldFromSaveFile()); 
             }
             else
             {
@@ -315,6 +314,7 @@ namespace VoxelWorld
             _worldModel.AddChunkDataToLookupCache(coordinate, chunkData);
         }
 
+        //TODO refactor to build the world with async/await instead of coroutines
         /// <summary>
         /// adds one chunk column every frame until the whole initial world is built
         /// starts coroutines for world updating when player moves after that
@@ -323,10 +323,9 @@ namespace VoxelWorld
         {
             Debug.Log($"#World# Initial World building started");
 
-
             worldBuildingStarted.Invoke(_initialChunkColumnCount);
 
-            yield return StartCoroutine(BuildChunkColumns(new Vector3(0, 0, 0), worldConfiguration.chunkColumnDrawRadius * worldConfiguration.chunkDimensions.x));
+            yield return StartCoroutine(BuildChunkColumns(Vector3.zero, worldConfiguration.chunkColumnDrawRadius * worldConfiguration.chunkDimensions.x));
 
             yield return Resources.UnloadUnusedAssets();
 

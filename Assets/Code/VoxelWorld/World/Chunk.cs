@@ -37,7 +37,7 @@ namespace VoxelWorld
         /// 3-dimensional array, x,y,z, relative coordinates within a chunk for a block
         public Block[,,] blocks;
 
-        //TODO move this out of mononehaviour into ChunkData
+        //TODO move this out of monobehaviour into ChunkData
         [HideInInspector]
         public BlockType[] chunkData;
         /// the current health (visual) of the block at the index
@@ -195,6 +195,7 @@ namespace VoxelWorld
         ProfilerMarker profilerMarkerRunMergeBlockMeshesJob = new("MergeBlockMeshesJob");
         ProfilerMarker profilerMarkerCreateBlockMeshes = new("CreateBlockMeshes");
         ProfilerMarker profilerMarkerCreateSingleBlock = new("CreateSingleBlock");
+        
         /// <summary>
         /// creates a chunk of blocks, creates the actual meshes for every single block and merges them into 2 chunk meshes
         /// </summary>
@@ -359,7 +360,7 @@ namespace VoxelWorld
 
                 Mesh.ApplyAndDisposeWritableMeshData(outputMeshData, new[] { mergedMesh });
 
-                // dispose all allocted job data
+                // dispose all allocated job data
                 mergeBlockMeshesJob.inputMeshData.Dispose();
                 mergeBlockMeshesJob.vertexStartIndices.Dispose();
                 mergeBlockMeshesJob.trianglesStartIndices.Dispose();

@@ -95,7 +95,7 @@ namespace VoxelWorld
             }
         }
 
-        public void HandleBlockFlowing(Vector3Int blockPosition, Vector3Int chunkPosition, Vector3Int neighbourDirection, int strength)
+        private void HandleBlockFlowing(Vector3Int blockPosition, Vector3Int chunkPosition, Vector3Int neighbourDirection, int strength)
         {
             strength--;
             if (strength <= 0)
@@ -151,6 +151,7 @@ namespace VoxelWorld
             }
         }
 
+        //TODO should this be in WorldBuilder?
         /// <summary>
         /// BuildCoordinator monitors the build queue for tasks and runs them one after the other, one job per frame
         /// </summary>
