@@ -9,11 +9,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ebbd56f7df614405e94d708149a2a81c, type: 3}
-  m_Name: PerlinSettings_Surface
+  m_Script: {fileID: 11500000, guid: 3b953131f9f7f4af4a7e86abeadbc534, type: 3}
+  m_Name: Biome_Levels_Humidity
   m_EditorClassIdentifier: 
-  heightScale: 8.69
-  scale: 0.098
-  octaves: 2
-  heightOffset: 16.3
-  probability: 1
+  RangeValues:
+  - -1
+  - -0.35
+  - -0.100000024
+  - 0.100000024
+  - 0.29999995
+  - 1

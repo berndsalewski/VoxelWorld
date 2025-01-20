@@ -1,8 +1,10 @@
+using System;
 using UnityEngine;
 
 namespace VoxelWorld
 {
     [ExecuteInEditMode]
+    [RequireComponent(typeof(LineRenderer))]
     public class PerlinGrapher : MonoBehaviour
     {
         public LineRenderer lineRenderer;
@@ -10,12 +12,13 @@ namespace VoxelWorld
 
         void Start()
         {
+            Debug.Log($"Start");
             lineRenderer = GetComponent<LineRenderer>();
             lineRenderer.positionCount = 100;
-            Graph();
+            UpdateGraph();
         }
 
-        void Graph()
+        public void UpdateGraph()
         {
             int z = 0;
             Vector3[] positions = new Vector3[lineRenderer.positionCount];
@@ -25,11 +28,6 @@ namespace VoxelWorld
                 positions[x] = new Vector3(x, y, z);
             }
             lineRenderer.SetPositions(positions);
-        }
-
-        private void OnValidate()
-        {
-            Graph();
         }
     }
 }

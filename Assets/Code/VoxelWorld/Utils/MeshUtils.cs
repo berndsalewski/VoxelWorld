@@ -57,13 +57,24 @@ namespace VoxelWorld
         { new Vector2(0.1875f,0f), new Vector2(0.1875f,0.0625f), new Vector2(0.25f,0.0625f), new Vector2(0.25f,0f)}
     };
 
-        public static float fBM(float x, float z, int octaves, float scale, float heightScale, float heightOffset)
+        /// <summary>
+        /// fbm stands for fractal brownian motion, its basically several perlin noises layered on top of each other
+        /// its a 2D noise
+        /// </summary>
+        /// <param name="x">x position input</param>
+        /// <param name="y">y position input</param>
+        /// <param name="octaves">how many layers are used</param>
+        /// <param name="scale">scales the result</param>
+        /// <param name="heightScale">will scale the result values</param>
+        /// <param name="heightOffset">will offset the result value </param>
+        /// <returns></returns>
+        public static float fBM(float x, float y, int octaves, float scale, float heightScale, float heightOffset)
         {
             float total = 0;
             float frequency = 1;
             for (int i = 0; i < octaves; i++)
             {
-                total += Mathf.PerlinNoise(x * scale * frequency, z * scale * frequency) * heightScale;
+                total += Mathf.PerlinNoise(x * scale * frequency, y * scale * frequency) * heightScale;
                 frequency *= 2;
             }
             return total + heightOffset;

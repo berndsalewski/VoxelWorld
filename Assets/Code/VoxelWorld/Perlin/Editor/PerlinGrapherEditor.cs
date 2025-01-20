@@ -1,33 +1,32 @@
-using UnityEditor;
-using UnityEngine;
 
 namespace VoxelWorld.Editor
 {
-    [CustomEditor(typeof(PerlinGrapher))]
-    public class PerlinGrapherEditor : UnityEditor.Editor
-    {
-        private UnityEditor.Editor configurationEditor;
+    using UnityEditor;
+    using UnityEngine;
 
-        private void OnEnable()
-        {
-            configurationEditor = null;
-        }
+    [CustomEditor(typeof(PerlinGrapher))]
+    public class PerlinGrapherEditor : Editor
+    {
+        private Editor _perlinSettingsEditor;
 
         override public void OnInspectorGUI()
         {
             PerlinGrapher perlinGrapher = (PerlinGrapher)target;
 
-            if (configurationEditor == null)
+            if (_perlinSettingsEditor == null)
             {
-                configurationEditor = CreateEditor(perlinGrapher.perlinSettings);
+                _perlinSettingsEditor = CreateEditor(perlinGrapher.perlinSettings);
             }
 
             DrawDefaultInspector();
 
-            configurationEditor.DrawDefaultInspector();
+            if(_perlinSettingsEditor.DrawDefaultInspector())
+            {
+                perlinGrapher.UpdateGraph();
+            }
         }
 
-        void OnSceneGUI()
+        private void OnSceneGUI()
         {
             PerlinGrapher perlinGrapher = (PerlinGrapher)target;
             if (perlinGrapher == null)
@@ -39,6 +38,11 @@ namespace VoxelWorld.Editor
             Handles.Label(perlinGrapher.lineRenderer.GetPosition(0) + Vector3.up * 2,
                 "Layer: " +
                 perlinGrapher.gameObject.name);
+        }
+
+        private void OnDestroy()
+        {
+            _perlinSettingsEditor = null;
         }
     }
 }

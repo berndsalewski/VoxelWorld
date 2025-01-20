@@ -10,8 +10,10 @@ public class WorldConfiguration : ScriptableObject
 
     [Tooltip("if a block is above the surface and below this value it will be water, otherwise air")]
     public int waterLevel;
+    
     [Tooltip("radius around the player in which new chunk columns are added, value is number of chunks")]
     public int chunkColumnDrawRadius;
+
 	[Tooltip("max height in number of chunks")]
 	public int worldHeight;
 

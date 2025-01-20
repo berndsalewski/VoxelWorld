@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace VoxelWorld
@@ -7,7 +8,7 @@ namespace VoxelWorld
     {
         [Range(1, 10)]
         public float heightScale;
-        [Range(0.01f, 1)]
+        [Range(0f, 1f)]
         public float scale;
         [Range(1, 10)]
         public int octaves;

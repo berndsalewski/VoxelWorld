@@ -1,12 +1,12 @@
-﻿using UnityEditor;
-using UnityEngine;
-
-namespace VoxelWorld.Editor
+﻿namespace VoxelWorld.Editor
 {
+    using UnityEditor;
+    using UnityEngine;
+
     [CustomEditor(typeof(Perlin3DGrapher))]
-    public class Perlin3DGrapherEditor : UnityEditor.Editor
+    public class Perlin3DGrapherEditor : Editor
     {
-        UnityEditor.Editor configurationEditor;
+        Editor configurationEditor;
 
         public void OnEnable()
         {

@@ -9,11 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ebbd56f7df614405e94d708149a2a81c, type: 3}
-  m_Name: PerlinSettings_Surface
+  m_Script: {fileID: 11500000, guid: 332746dee74824a3bab75ff89a9d938d, type: 3}
+  m_Name: FloatVariable
   m_EditorClassIdentifier: 
-  heightScale: 8.69
-  scale: 0.098
-  octaves: 2
-  heightOffset: 16.3
-  probability: 1
+  _initialValue: 42
