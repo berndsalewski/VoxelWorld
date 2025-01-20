@@ -17,7 +17,7 @@ namespace VoxelWorld
         {
             StringBuilder filePath = new StringBuilder();
             filePath.Append(saveFileDirectory);
-            filePath.Append(SessionGameData.worldFileName);
+            filePath.Append(SessionGameData.WorldFileName);
             filePath.Append(SAVE_FILE_ENDING);
 
             return filePath.ToString();

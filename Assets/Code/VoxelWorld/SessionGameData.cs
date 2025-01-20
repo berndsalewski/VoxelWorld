@@ -3,6 +3,6 @@
 /// </summary>
 static public class SessionGameData
 {
-    static public string worldFileName;
-    internal static bool loadFromFile;
+    static public string WorldFileName;
+    internal static bool LoadFromFile;
 }

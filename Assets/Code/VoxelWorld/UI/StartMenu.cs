@@ -20,15 +20,24 @@ namespace VoxelWorld
             UpdateAvailableSaveFiles();
         }
 
+        //called from ui  
         public void LoadSelectedSaveFile()
         {
-            SessionGameData.loadFromFile = true;
+            SessionGameData.LoadFromFile = true;
 
             WriteSelectedWorldNameToSessionData();
 
             SceneManager.LoadScene((int)SceneIndex.voxelWorld);
         }
 
+        // called from ui
+        public void DeleteSelectedSaveFile()
+        {
+            File.Delete(FileSaver.saveFileDirectory + saveFiles[worldSelector.value]);
+            UpdateAvailableSaveFiles();
+        }
+        
+        // called from ui
         public void GenerateNewWorld()
         {
             if (string.IsNullOrEmpty(inputWorldName.text))
@@ -36,15 +45,9 @@ namespace VoxelWorld
                 inputWorldName.Select();
                 return;
             }
-            SessionGameData.loadFromFile = false;
-            SessionGameData.worldFileName = inputWorldName.text;
+            SessionGameData.LoadFromFile = false;
+            SessionGameData.WorldFileName = inputWorldName.text;
             SceneManager.LoadScene((int)SceneIndex.voxelWorld);
-        }
-
-        public void DeleteSelectedSaveFile()
-        {
-            File.Delete(FileSaver.saveFileDirectory + saveFiles[worldSelector.value]);
-            UpdateAvailableSaveFiles();
         }
 
         private void UpdateAvailableSaveFiles()
@@ -79,7 +82,7 @@ namespace VoxelWorld
         {
             int fileEndingStart = saveFiles[worldSelector.value].Length - FileSaver.SAVE_FILE_ENDING.Length;
             string worldFileName = saveFiles[worldSelector.value].Remove(fileEndingStart);
-            SessionGameData.worldFileName = worldFileName;
+            SessionGameData.WorldFileName = worldFileName;
         }
     }
 }
